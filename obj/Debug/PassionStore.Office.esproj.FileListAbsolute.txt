@@ -1,0 +1,2 @@
+D:\Coding\Uni-dev\LVTN_NASH\NashStore\PassionStore.Office\obj\Debug\PassionStore.Office.esproj.CoreCompileInputs.cache
+D:\Coding\Uni-dev\LVTN_NASH\NashStore\PassionStore.Client\obj\Debug\PassionStore.Office.esproj.CoreCompileInputs.cache
