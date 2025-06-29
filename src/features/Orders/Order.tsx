@@ -1,13 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Clock, Truck, CreditCard, XCircle, ChevronLeft, ChevronRight, Search, Wallet } from "lucide-react";
+import {
+  ArrowLeft,
+  Package,
+  Clock,
+  Truck,
+  CreditCard,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Wallet,
+  Star,
+  ShoppingCart,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { useAppSelector } from "../../app/store/store";
 import { useFetchSelfOrdersQuery, useGetOrderByIdQuery, useCancelOrderMutation } from "../../app/api/orderApi";
+import { useHasRatedProductQuery } from "../../app/api/ratingApi";
 import { Order, PaymentMethod, ShippingMethod } from "../../app/models/responses/order";
+import type { OrderItem } from "../../app/models/responses/order";
+import RatingModal from "./RatingModal";
 
 // Define OrderStatus enum to mirror backend
 enum OrderStatus {
@@ -88,11 +104,110 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 };
 
+// Check if order is eligible for rating (Completed and within 3 months)
+const isEligibleForRating = (order: Order): boolean => {
+  if (order.status !== OrderStatus.Completed || !order.updatedDate) return false;
+  const updatedDate = new Date(order.updatedDate);
+  const threeMonthsLater = new Date(updatedDate);
+  threeMonthsLater.setMonth(updatedDate.getMonth() + 3);
+  return new Date() <= threeMonthsLater;
+};
+
+// Group order items by productId
+const groupOrderItemsByProductId = (orderItems: OrderItem[]) => {
+  const grouped: { [key: string]: { productId: string; productName: string; variants: OrderItem[]; totalPrice: number } } = {};
+  orderItems.forEach((item) => {
+    if (!grouped[item.productId]) {
+      grouped[item.productId] = {
+        productId: item.productId,
+        productName: item.productName,
+        variants: [],
+        totalPrice: 0,
+      };
+    }
+    grouped[item.productId].variants.push(item);
+    grouped[item.productId].totalPrice += item.price * item.quantity;
+  });
+  return Object.values(grouped);
+};
+
+// New OrderItem component to handle individual product rendering
+interface OrderItemProps {
+  product: { productId: string; productName: string; variants: OrderItem[]; totalPrice: number };
+  order: Order;
+  setRatingOrder: (rating: { orderId: string; productId: string; productName: string } | null) => void;
+}
+
+const OrderItem = ({ product, order, setRatingOrder }: OrderItemProps) => {
+  const navigate = useNavigate();
+  const { darkMode } = useAppSelector((state) => state.ui);
+  const { data: hasRated, isLoading: isRatingLoading, error } = useHasRatedProductQuery(product.productId);
+
+  return (
+    <div className="border-b dark:border-gray-600 pb-2">
+      <div className="flex items-center gap-4">
+        <img
+          src={product.variants[0].productImage || "/placeholder.svg?height=80&width=80"}
+          alt={product.productName}
+          className="w-16 h-16 object-cover rounded-lg"
+        />
+        <div className="flex-1">
+          <p className="font-semibold text-gray-900 dark:text-white">{product.productName}</p>
+          {product.variants.map((variant) => (
+            <p key={variant.id} className="text-sm text-gray-600 dark:text-gray-300">
+              Màu: {variant.color?.name} | Size: {variant.size?.name} | Số lượng: {variant.quantity}
+            </p>
+          ))}
+        </div>
+        <div className="text-right">
+          <p className="font-semibold text-gray-900 dark:text-white">{formatPrice(product.totalPrice)}</p>
+          <div className="mt-2 space-y-2">
+            {isEligibleForRating(order) && !isRatingLoading && !hasRated && !error && (
+              <button
+                onClick={() =>
+                  setRatingOrder({
+                    orderId: order.id,
+                    productId: product.productId,
+                    productName: product.productName,
+                  })
+                }
+                className="px-4 py-1 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900 rounded-lg transition-colors duration-200 text-sm"
+              >
+                <Star className="h-4 w-4 inline mr-2" />
+                Thêm đánh giá
+              </button>
+            )}
+            {(order.status === OrderStatus.Cancelled || (isEligibleForRating(order) && hasRated)) && (
+              <button
+                onClick={() => navigate(`/products/${product.productId}`)}
+                className="px-4 py-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-lg transition-colors duration-200 text-sm"
+              >
+                <ShoppingCart className="h-4 w-4 inline mr-2" />
+                Mua lại
+              </button>
+            )}
+            {isRatingLoading && (
+              <p className="text-sm text-gray-600 dark:text-gray-300">Đang kiểm tra trạng thái đánh giá...</p>
+            )}
+            {hasRated && order.status !== OrderStatus.Cancelled && (
+              <p className="text-sm text-gray-600 dark:text-gray-300">Bạn đã đánh giá sản phẩm này</p>
+            )}
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400">Lỗi khi kiểm tra trạng thái đánh giá</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Orders = () => {
   const navigate = useNavigate();
   const { darkMode } = useAppSelector((state) => state.ui);
   const [pageNumber, setPageNumber] = useState(1);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [ratingOrder, setRatingOrder] = useState<{ orderId: string; productId: string; productName: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const pageSize = 5;
@@ -101,7 +216,6 @@ const Orders = () => {
   const { data: ordersData, isLoading, error } = useFetchSelfOrdersQuery({
     pageNumber,
     pageSize,
-    orderBy: "orderDate",
     status: statusFilter || undefined,
     searchTerm: searchTerm || undefined,
   });
@@ -177,7 +291,7 @@ const Orders = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
           <div className="flex items-center gap-2 mb-4">
             <Package className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Danh sách đơn hàng ({ordersData?.items.length || 0})</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Danh sách đơn hàng ({ordersData?.pagination?.totalCount || 0})</h2>
           </div>
 
           {/* Filters */}
@@ -296,6 +410,15 @@ const Orders = () => {
                           Tiếp tục thanh toán
                         </button>
                       )}
+                      {order.status === OrderStatus.Cancelled && (
+                        <button
+                          onClick={() => navigate(`/products/${order.orderItems[0].productId}`)}
+                          className="px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-lg transition-colors duration-200"
+                        >
+                          <ShoppingCart className="h-4 w-4 inline mr-2" />
+                          Mua lại
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -406,22 +529,13 @@ const Orders = () => {
                     <div>
                       <p className="text-gray-600 dark:text-gray-300 font-semibold mb-2">Sản phẩm</p>
                       <div className="space-y-4">
-                        {selectedOrder.orderItems?.map((item) => (
-                          <div key={item.id} className="flex items-center gap-4 border-b dark:border-gray-600 pb-2">
-                            <img
-                              src={item.productImage || "/placeholder.svg?height=80&width=80"}
-                              alt={item.productName}
-                              className="w-16 h-16 object-cover rounded-lg"
-                            />
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900 dark:text-white">{item.productName}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-300">
-                                Màu: {item.color?.name} | Size: {item.size?.name}
-                              </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-300">Số lượng: {item.quantity}</p>
-                            </div>
-                            <p className="font-semibold text-gray-900 dark:text-white">{formatPrice(item.price * item.quantity)}</p>
-                          </div>
+                        {groupOrderItemsByProductId(selectedOrder.orderItems).map((product) => (
+                          <OrderItem
+                            key={product.productId}
+                            product={product}
+                            order={selectedOrder}
+                            setRatingOrder={setRatingOrder}
+                          />
                         ))}
                       </div>
                       <div className="mt-4">
@@ -437,8 +551,8 @@ const Orders = () => {
                         <span className="font-semibold text-xl text-red-600">{formatPrice(selectedOrder.totalAmount)}</span>
                       </div>
                     </div>
-                    {selectedOrder.status === OrderStatus.PendingPayment && selectedOrder.paymentMethod === PaymentMethod.VietQR && selectedOrder.paymentLink && (
-                      <div className="mt-4 flex justify-end">
+                    <div className="mt-4 flex justify-end gap-2">
+                      {selectedOrder.status === OrderStatus.PendingPayment && selectedOrder.paymentMethod === PaymentMethod.VietQR && selectedOrder.paymentLink && (
                         <button
                           onClick={() => handleContinuePayment(selectedOrder.paymentLink!)}
                           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
@@ -446,12 +560,33 @@ const Orders = () => {
                           <Wallet className="h-4 w-4 inline mr-2" />
                           Tiếp tục thanh toán
                         </button>
-                      </div>
-                    )}
+                      )}
+                      {selectedOrder.status === OrderStatus.Cancelled && (
+                        <button
+                          onClick={() => navigate(`/products/${selectedOrder.orderItems[0].productId}`)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                        >
+                          <ShoppingCart className="h-4 w-4 inline mr-2" />
+                          Mua lại
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </motion.div>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Rating Modal */}
+        <AnimatePresence>
+          {ratingOrder && (
+            <RatingModal
+              orderId={ratingOrder.orderId}
+              productId={ratingOrder.productId}
+              productName={ratingOrder.productName}
+              onClose={() => setRatingOrder(null)}
+            />
           )}
         </AnimatePresence>
       </div>

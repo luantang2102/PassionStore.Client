@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { productVariantApi } from "../api/productVariantApi";
 import { cartApi } from "../api/cartApi";
 import { orderApi } from "../api/orderApi";
+import { ratingApi } from "../api/ratingApi";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     [sizeApi.reducerPath]: sizeApi.reducer,
     [colorApi.reducerPath]: colorApi.reducer,
     [orderApi.reducerPath]: orderApi.reducer,
+    [ratingApi.reducerPath]: ratingApi.reducer,
     product: productReducer,
     auth: authReducer,
   },
@@ -42,7 +44,8 @@ export const store = configureStore({
       sizeApi.middleware,
       colorApi.middleware,
       cartApi.middleware,
-      orderApi.middleware
+      orderApi.middleware,
+      ratingApi.middleware,
     ]),
 });
 

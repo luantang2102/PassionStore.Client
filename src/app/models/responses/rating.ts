@@ -1,13 +1,13 @@
 export interface Rating {
     id: string;
     value: number;
-    comment: string;
+    comment?: string;
+    helpful: number;
     createdDate: string;
     updatedDate?: string;
     userId: string;
-    userName: string;
+    userName?: string;
     imageUrl?: string;
-    publicId?: string;
-    email: string;
+    email?: string;
     productId: string;
 }

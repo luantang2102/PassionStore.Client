@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -16,15 +16,16 @@ import {
   RotateCcw,
   Check,
   ThumbsUp,
-  ThumbsDown,
-  MessageCircle,
   AlertCircle,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useFetchProductByIdQuery } from "../../app/api/productApi";
-import { useAddCartItemMutation } from "../../app/api/cartApi"; // Import cart API hook
-import { useAppDispatch, useAppSelector } from "../../app/store/store";
+import { useAddCartItemMutation } from "../../app/api/cartApi";
+import { useFetchRatingsByProductIdQuery, useToggleHelpfulMutation } from "../../app/api/ratingApi";
+import { useAppSelector } from "../../app/store/store";
 import { ProductVariant } from "../../app/models/responses/productVariant";
+import { Rating } from "../../app/models/responses/rating";
 
 // Placeholder size guide data
 const sizeGuide = {
@@ -32,7 +33,6 @@ const sizeGuide = {
   "40": { eu: "40", us: "7", uk: "6.5", cm: "25" },
   "41": { eu: "41", us: "8", uk: "7.5", cm: "25.5" },
   "42": { eu: "42", us: "8.5", uk: "8", cm: "26" },
-  "43": { eu: "43", us: "9.5", uk: "9", cm: "26.5" },
   "44": { eu: "44", us: "10", uk: "9.5", cm: "27" },
   "45": { eu: "45", us: "11", uk: "10.5", cm: "27.5" },
 };
@@ -81,42 +81,24 @@ const relatedProducts = [
   },
 ];
 
-// Mock reviews
-const mockReviews = [
-  {
-    id: 1,
-    user: "Nguyễn Văn A",
-    avatar: "/placeholder.svg?height=40&width=40&text=A",
-    rating: 5,
-    date: "2024-01-15",
-    title: "Tuyệt vời cho chạy marathon",
-    content: "Đã sử dụng đôi giày này chạy 3 marathon và vẫn rất tốt. Đệm êm, thoáng khí và bền bỉ. Rất đáng tiền!",
-    helpful: 24,
-    verified: true,
-    images: ["/placeholder.svg?height=100&width=100&text=Review1"],
-  },
-  {
-    id: 2,
-    user: "Trần Thị B",
-    avatar: "/placeholder.svg?height=40&width=40&text=B",
-    rating: 4,
-    date: "2024-01-10",
-    title: "Chất lượng tốt nhưng hơi chật",
-    content: "Giày đẹp và chất lượng tốt, tuy nhiên tôi phải lên size so với thông thường. Nên thử trước khi mua.",
-    helpful: 18,
-    verified: true,
-    images: [],
-  },
-];
+// Interface for tracking helpful status
+interface HelpfulStatus {
+  [ratingId: string]: boolean;
+}
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const { isAuthenticated } = useAppSelector((state) => state.auth);
 
   const { data: product, isLoading, error } = useFetchProductByIdQuery(id || "");
-  const [addCartItem, { isLoading: isAddingCartItem, error: cartError }] = useAddCartItemMutation(); // Add cart mutation
+  const [addCartItem, { isLoading: isAddingCartItem, error: cartError }] = useAddCartItemMutation();
+  const { data: ratingsData, isLoading: isRatingsLoading } = useFetchRatingsByProductIdQuery({
+    productId: id || "",
+    ratingParams: { pageNumber: 1, pageSize: 10 },
+  });
+  const [toggleHelpful, { isLoading: isTogglingHelpful, error: toggleHelpfulError }] = useToggleHelpfulMutation();
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -125,29 +107,26 @@ export default function ProductDetailPage() {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
-  const [newReview, setNewReview] = useState({ rating: 5, title: "", content: "" });
+  const [helpfulStatus, setHelpfulStatus] = useState<HelpfulStatus>({});
 
   useEffect(() => {
     if (error) {
       toast.error("Không thể tải thông tin sản phẩm. Vui lòng thử lại.");
     }
-  }, [error]);
-
-  useEffect(() => {
     if (cartError) {
       toast.error("Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại.");
     }
-  }, [cartError]);
+    if (toggleHelpfulError) {
+      toast.error("Không thể cập nhật trạng thái hữu ích. Vui lòng thử lại.");
+    }
+  }, [error, cartError, toggleHelpfulError]);
 
   useEffect(() => {
     if (product && !product.isNotHadVariants && product.productVariants.length > 0) {
-      // Set the first available color
       const firstColor = [...new Set(product.productVariants.map((v) => v.color.name))][0];
       setSelectedColor(firstColor);
-      // Set the first available size for that color
       const firstSize = product.productVariants.find((v) => v.color.name === firstColor)?.size.name || null;
       setSelectedSize(firstSize);
-      // Set the corresponding variant
       const variant = product.productVariants.find(
         (v) => v.color.name === firstColor && v.size.name === firstSize
       );
@@ -165,6 +144,176 @@ export default function ProductDetailPage() {
       setSelectedVariant(variant || null);
     }
   }, [selectedColor, selectedSize, product]);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
+  };
+
+  const getThumbnailImages = () => {
+    return product?.productImages.map((img) => img.imageUrl) || [];
+  };
+
+  const handleImageChange = (index: number) => {
+    setCurrentImageIndex(index);
+  };
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) => (prev === 0 ? getThumbnailImages().length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev === getThumbnailImages().length - 1 ? 0 : prev + 1));
+  };
+
+  const handleQuantityChange = (change: number) => {
+    if (selectedVariant) {
+      setQuantity((prev) => Math.max(1, Math.min(selectedVariant.stockQuantity, prev + change)));
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng!");
+      navigate("/signin");
+      return;
+    }
+    if (!selectedVariant && !product?.isNotHadVariants) {
+      toast.error("Vui lòng chọn màu sắc và kích thước!");
+      return;
+    }
+    if ((selectedVariant?.stockQuantity ?? product?.stockQuantity ?? 0) === 0) {
+      toast.error("Sản phẩm hiện đã hết hàng!");
+      return;
+    }
+
+    const productVariantId = selectedVariant?.id ?? product?.productVariants[0]?.id;
+    if (!productVariantId) {
+      toast.error("Không tìm thấy biến thể sản phẩm!");
+      return;
+    }
+
+    try {
+      const cartItem = {
+        productVariantId,
+        quantity,
+      };
+      await addCartItem(cartItem).unwrap();
+      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
+    } catch (error) {
+      toast.error("Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại.");
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để mua hàng!");
+      navigate("/signin");
+      return;
+    }
+    if (!selectedVariant && !product?.isNotHadVariants) {
+      toast.error("Vui lòng chọn màu sắc và kích thước!");
+      return;
+    }
+    if ((selectedVariant?.stockQuantity ?? product?.stockQuantity ?? 0) === 0) {
+      toast.error("Sản phẩm hiện đã hết hàng!");
+      return;
+    }
+
+    const productVariantId = selectedVariant?.id ?? product?.productVariants[0]?.id;
+    if (!productVariantId) {
+      toast.error("Không tìm thấy biến thể sản phẩm!");
+      return;
+    }
+
+    try {
+      const cartItem = {
+        productVariantId,
+        quantity,
+      };
+      await addCartItem(cartItem).unwrap();
+      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
+      navigate("/cart");
+    } catch (error) {
+      toast.error("Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại.");
+    }
+  };
+
+  const handleToggleHelpful = async (ratingId: string) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để đánh dấu đánh giá là hữu ích!");
+      navigate("/signin");
+      return;
+    }
+
+    try {
+      await toggleHelpful(ratingId).unwrap();
+      setHelpfulStatus((prev) => ({
+        ...prev,
+        [ratingId]: !prev[ratingId],
+      }));
+      toast.success(
+        helpfulStatus[ratingId] ? "Đã xóa đánh dấu hữu ích!" : "Đã đánh dấu là hữu ích!"
+      );
+    } catch (error) {
+      toast.error("Không thể cập nhật trạng thái hữu ích. Vui lòng thử lại.");
+    }
+  };
+
+  const handleViewStoreResponse = () => {
+    toast.info("Chức năng xem phản hồi từ Passion Store đang được phát triển!");
+  };
+
+  const renderStars = (value: number, size: "sm" | "md" | "lg" = "md") => {
+    const sizeClass = size === "sm" ? "h-3 w-3" : size === "lg" ? "h-6 w-6" : "h-4 w-4";
+    return (
+      <div className="flex items-center gap-1">
+        {[...Array(5)].map((_, i) => (
+          <Star
+            key={i}
+            className={`${sizeClass} ${i < Math.floor(value) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  // Calculate rating distribution from fetched ratings
+  const ratingDistribution = useMemo(() => {
+    const distribution = Array(5).fill(0).map((_, i) => ({
+      stars: 5 - i,
+      count: 0,
+      percentage: 0,
+    }));
+    if (ratingsData?.items) {
+      const total = ratingsData.items.length;
+      ratingsData.items.forEach((review) => {
+        if (review.value >= 1 && review.value <= 5) {
+          distribution[5 - review.value].count += 1;
+        }
+      });
+      distribution.forEach((item) => {
+        item.percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
+      });
+    }
+    return distribution;
+  }, [ratingsData]);
+
+  // Get unique colors
+  const uniqueColors = product ? [...new Set(product.productVariants.map((v) => v.color.name))] : [];
+
+  // Get sizes for the selected color
+  const availableSizes = selectedColor
+    ? product?.productVariants
+        .filter((v) => v.color.name === selectedColor)
+        .map((v) => v.size.name) || []
+    : [];
+
+  // Check if product or selected variant is out of stock
+  const isOutOfStock = product?.inStock
+    ? (product.isNotHadVariants
+        ? product.stockQuantity === 0
+        : !selectedVariant || selectedVariant.stockQuantity === 0)
+    : true;
 
   if (isLoading) {
     return (
@@ -192,136 +341,6 @@ export default function ProductDetailPage() {
       </div>
     );
   }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
-  };
-
-  const getThumbnailImages = () => {
-    return product.productImages.map((img) => img.imageUrl);
-  };
-
-  const handleImageChange = (index: number) => {
-    setCurrentImageIndex(index);
-  };
-
-  const handlePrevImage = () => {
-    setCurrentImageIndex((prev) => (prev === 0 ? getThumbnailImages().length - 1 : prev - 1));
-  };
-
-  const handleNextImage = () => {
-    setCurrentImageIndex((prev) => (prev === getThumbnailImages().length - 1 ? 0 : prev + 1));
-  };
-
-  const handleQuantityChange = (change: number) => {
-    if (selectedVariant) {
-      setQuantity((prev) => Math.max(1, Math.min(selectedVariant.stockQuantity, prev + change)));
-    }
-  };
-
-  const handleAddToCart = async () => {
-    if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng!");
-      navigate("/signin");
-      return;
-    }
-    if (!selectedVariant && !product.isNotHadVariants) {
-      toast.error("Vui lòng chọn màu sắc và kích thước!");
-      return;
-    }
-    if ((selectedVariant?.stockQuantity || product.stockQuantity) === 0) {
-      toast.error("Sản phẩm hiện đã hết hàng!");
-      return;
-    }
-
-    try {
-      const cartItem = {
-        productVariantId: selectedVariant?.id || product.productVariants[0]?.id,
-        quantity,
-      };
-      await addCartItem(cartItem).unwrap();
-      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
-    } catch (error) {
-      toast.error("Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại.");
-    }
-  };
-
-  const handleBuyNow = async () => {
-    if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để mua hàng!");
-      navigate("/signin");
-      return;
-    }
-    if (!selectedVariant && !product.isNotHadVariants) {
-      toast.error("Vui lòng chọn màu sắc và kích thước!");
-      return;
-    }
-    if ((selectedVariant?.stockQuantity || product.stockQuantity) === 0) {
-      toast.error("Sản phẩm hiện đã hết hàng!");
-      return;
-    }
-
-    try {
-      const cartItem = {
-        productVariantId: selectedVariant?.id || product.productVariants[0]?.id,
-        quantity,
-      };
-      await addCartItem(cartItem).unwrap();
-      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`);
-      navigate("/cart"); // Navigate to Cart page instead of /checkout
-    } catch (error) {
-      toast.error("Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại.");
-    }
-  };
-
-  const handleSubmitReview = () => {
-    if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để gửi đánh giá!");
-      navigate("/signin");
-      return;
-    }
-    toast.success("Đánh giá đã được gửi!");
-    setNewReview({ rating: 5, title: "", content: "" });
-  };
-
-  const renderStars = (rating: number, size: "sm" | "md" | "lg" = "md") => {
-    const sizeClass = size === "sm" ? "h-3 w-3" : size === "lg" ? "h-6 w-6" : "h-4 w-4";
-    return (
-      <div className="flex items-center gap-1">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`${sizeClass} ${i < Math.floor(rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  const ratingDistribution = [
-    { stars: 5, count: 542, percentage: 61 },
-    { stars: 4, count: 223, percentage: 25 },
-    { stars: 3, count: 89, percentage: 10 },
-    { stars: 2, count: 27, percentage: 3 },
-    { stars: 1, count: 11, percentage: 1 },
-  ];
-
-  // Get unique colors
-  const uniqueColors = [...new Set(product.productVariants.map((v) => v.color.name))];
-
-  // Get sizes for the selected color
-  const availableSizes = selectedColor
-    ? product.productVariants
-        .filter((v) => v.color.name === selectedColor)
-        .map((v) => v.size.name)
-    : [];
-
-  // Check if product or selected variant is out of stock
-  const isOutOfStock = product.inStock
-    ? (product.isNotHadVariants
-        ? product.stockQuantity === 0
-        : !selectedVariant || selectedVariant.stockQuantity === 0)
-    : true;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900">
@@ -448,7 +467,7 @@ export default function ProductDetailPage() {
 
             {product.isNotHadVariants ? (
               <div>
-                <div className="bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 text-sm px-3-zero py-2 rounded-lg inline-flex items-center mb-3">
+                <div className="bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 text-sm px-3 py-2 rounded-lg inline-flex items-center mb-3">
                   <Check className="h-4 w-4 mr-2" />
                   Sản phẩm đơn lẻ (Không có biến thể)
                 </div>
@@ -465,7 +484,6 @@ export default function ProductDetailPage() {
                         key={color}
                         onClick={() => {
                           setSelectedColor(color);
-                          // Reset size to the first available size for this color
                           const firstSize = product.productVariants.find(
                             (v) => v.color.name === color
                           )?.size.name || null;
@@ -616,7 +634,9 @@ export default function ProductDetailPage() {
                     setIsWishlisted(!isWishlisted);
                     toast.success(isWishlisted ? "Đã xóa khỏi danh sách yêu thích!" : "Đã thêm vào danh sách yêu thích!");
                   }}
-                  className={`p-3 border border-gray-300 dark:border-gray-600 rounded-lg ${
+                  className={`p-3 border border-gray-3
+
+00 dark:border-gray-600 rounded-lg ${
                     isWishlisted ? "text-red-600 border-red-600" : "text-gray-700 dark:text-gray-300"
                   } hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200`}
                 >
@@ -745,106 +765,74 @@ export default function ProductDetailPage() {
                 </div>
                 <hr className="border-gray-200 dark:border-gray-600" />
                 <div className="space-y-6">
-                  {mockReviews.map((review) => (
-                    <div key={review.id} className="border-b border-gray-200 dark:border-gray-600 pb-6 last:border-b-0">
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300">
-                          {review.user[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-semibold text-gray-900 dark:text-white">{review.user}</span>
-                            {review.verified && (
+                  {isRatingsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : ratingsData?.items.length === 0 ? (
+                    <p className="text-gray-600 dark:text-gray-300 text-center">Chưa có đánh giá nào cho sản phẩm này.</p>
+                  ) : (
+                    ratingsData?.items.map((review: Rating) => (
+                      <div key={review.id} className="border-b border-gray-200 dark:border-gray-600 pb-6 last:border-b-0">
+                        <div className="flex items-start gap-4">
+                          {review.imageUrl ? (
+                            <img
+                              src={review.imageUrl}
+                              alt={review.userName || "Avatar"}
+                              className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-gray-600"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300">
+                              {review.userName?.[0] || "U"}
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-semibold text-gray-900 dark:text-white">{review.userName || "Người dùng ẩn danh"}</span>
                               <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded flex items-center">
                                 <Check className="h-3 w-3 mr-1" />
                                 Đã mua hàng
                               </span>
-                            )}
-                            <span className="text-sm text-gray-500 dark:text-gray-400">{review.date}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mb-2">
-                            {renderStars(review.rating)}
-                            <span className="font-medium text-gray-900 dark:text-white">{review.title}</span>
-                          </div>
-                          <p className="text-gray-700 dark:text-gray-300 mb-3">{review.content}</p>
-                          {review.images.length > 0 && (
-                            <div className="flex gap-2 mb-3">
-                              {review.images.map((image, index) => (
-                                <img
-                                  key={index}
-                                  src={image}
-                                  alt={`Review ${index + 1}`}
-                                  className="w-16 h-16 object-cover rounded-lg"
-                                />
-                              ))}
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                {new Date(review.createdDate).toLocaleDateString("vi-VN")}
+                              </span>
                             </div>
-                          )}
-                          <div className="flex items-center gap-4 text-sm">
-                            <button className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-green-600">
-                              <ThumbsUp className="h-4 w-4" />
-                              Hữu ích ({review.helpful})
-                            </button>
-                            <button className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-red-600">
-                              <ThumbsDown className="h-4 w-4" />
-                              Không hữu ích
-                            </button>
-                            <button className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-blue-600">
-                              <MessageCircle className="text-gray-600 dark:text-gray-300 h-4 w-4" />
-                              Trả lời
-                            </button>
+                            <div className="flex items-center gap-2 mb-2">
+                              {renderStars(review.value)}
+                            </div>
+                            {review.comment && (
+                              <p className="text-gray-700 dark:text-gray-300 mb-3">{review.comment}</p>
+                            )}
+                            <div className="flex items-center gap-4 text-sm">
+                              <button
+                                onClick={() => handleToggleHelpful(review.id)}
+                                disabled={isTogglingHelpful}
+                                className={`flex items-center gap-1 ${
+                                  helpfulStatus[review.id]
+                                    ? "text-green-600"
+                                    : "text-gray-600 dark:text-gray-300"
+                                } hover:text-green-600 disabled:opacity-50`}
+                              >
+                                <ThumbsUp
+                                  className={`h-4 w-4 ${
+                                    helpfulStatus[review.id] ? "fill-green-600" : ""
+                                  }`}
+                                />
+                                Hữu ích ({review.helpful})
+                              </button>
+                              <button
+                                onClick={handleViewStoreResponse}
+                                className="flex items-center gap-1 text-gray-600 dark:text-gray-300 hover:text-blue-600"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                                Xem phản hồi từ Passion Store
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-8 bg-white dark:bg-gray-800 shadow-inner rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Viết đánh giá</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="mb-2 block">Đánh giá của bạn</label>
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            onClick={() => setNewReview({ ...newReview, rating: star })}
-                            className="p-1"
-                          >
-                            <Star
-                              className={`h-6 w-6 ${star <= newReview.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300 dark:text-gray-600"}`}
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="review-title">Tiêu đề</label>
-                      <input
-                        id="review-title"
-                        placeholder="Tóm tắt đánh giá của bạn"
-                        value={newReview.title}
-                        onChange={(e) => setNewReview({ ...newReview, title: e.target.value })}
-                        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="review-content">Nội dung</label>
-                      <textarea
-                        id="review-content"
-                        placeholder="Chia sẻ trải nghiệm của bạn với sản phẩm này"
-                        rows={4}
-                        value={newReview.content}
-                        onChange={(e) => setNewReview({ ...newReview, content: e.target.value })}
-                        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <button
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                      onClick={handleSubmitReview}
-                    >
-                      Gửi đánh giá
-                    </button>
-                  </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}

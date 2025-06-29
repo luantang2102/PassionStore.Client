@@ -708,14 +708,23 @@ export default function Cart() {
                         </div>
                       ) : (
                         cart.cartItems.map((item) => (
-                          <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg dark:border-gray-600">
+                            <div
+                            key={item.id}
+                            className="flex items-center gap-4 p-4 border rounded-lg dark:border-gray-600"
+                            >
                             <img
                               src={item.productImage || "/placeholder.svg?height=80&width=80"}
                               alt={item.productName}
-                              className="w-20 h-20 object-cover rounded-lg"
+                              className="w-20 h-20 object-cover rounded-lg cursor-pointer"
+                              onClick={() => navigate(`/products/${item.productId}`)}
                             />
                             <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900 dark:text-white">{item.productName}</h3>
+                              <h3
+                              className="font-semibold text-gray-900 dark:text-white cursor-pointer"
+                              onClick={() => navigate(`/products/${item.productId}`)}
+                              >
+                              {item.productName}
+                              </h3>
                               <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-300">
                                 <span>Màu: {item.color.name}</span>
                                 <span>Size: {item.size.name}</span>
@@ -723,34 +732,34 @@ export default function Cart() {
                             </div>
                             <div className="flex items-center gap-3">
                               <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg">
-                                <button
-                                  onClick={() => updateQuantity(item.id, item.productVariantId, item.quantity - 1)}
-                                  className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-                                  disabled={item.quantity <= 1 || isUpdating}
-                                >
-                                  <Minus className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                                </button>
-                                <span className="px-3 py-2 font-semibold text-gray-900 dark:text-white">{item.quantity}</span>
-                                <button
-                                  onClick={() => updateQuantity(item.id, item.productVariantId, item.quantity + 1)}
-                                  className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-                                  disabled={isUpdating}
-                                >
-                                  <Plus className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                                </button>
+                              <button
+                                onClick={() => updateQuantity(item.id, item.productVariantId, item.quantity - 1)}
+                                className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                                disabled={item.quantity <= 1 || isUpdating}
+                              >
+                                <Minus className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                              </button>
+                              <span className="px-3 py-2 font-semibold text-gray-900 dark:text-white">{item.quantity}</span>
+                              <button
+                                onClick={() => updateQuantity(item.id, item.productVariantId, item.quantity + 1)}
+                                className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                                disabled={isUpdating}
+                              >
+                                <Plus className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                              </button>
                               </div>
                               <div className="text-right">
-                                <div className="font-semibold text-lg text-gray-900 dark:text-white">{formatPrice(item.price * item.quantity)}</div>
+                              <div className="font-semibold text-lg text-gray-900 dark:text-white">{formatPrice(item.price * item.quantity)}</div>
                               </div>
                               <button
-                                onClick={() => removeItem(item.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg disabled:opacity-50"
-                                disabled={isDeleting}
+                              onClick={() => removeItem(item.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg disabled:opacity-50"
+                              disabled={isDeleting}
                               >
-                                <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
-                          </div>
+                            </div>
                         ))
                       )}
                       {cart && cart.cartItems.length > 0 && (

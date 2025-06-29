@@ -21,7 +21,7 @@ export const orderApi = createApi({
   endpoints: (builder) => ({
     fetchSelfOrders: builder.query<{ items: Order[]; pagination: PaginationParams | null }, OrderParams>({
       query: (OrderParams) => ({
-        url: "Orders",
+        url: "Orders/me",
         params: OrderParams,
       }),
       transformResponse: (response: Order[], meta) => {

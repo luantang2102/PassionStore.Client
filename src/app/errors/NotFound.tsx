@@ -12,7 +12,7 @@ export default function NotFound() {
 
   return (
     <div
-      className="bg-white shadow-lg rounded-lg p-6 mt-8 flex flex-col justify-center items-center full-h max-w-2xl mx-auto"
+      className="bg-white shadow-lg rounded-lg p-6 mt-8 flex flex-col justify-center items-center h-200 max-w-5xl mx-auto"
     >
       <SearchX className="h-24 w-24 text-blue-600 mb-4" />
       <h2 className="text-3xl font-bold text-gray-900 mb-4 text-center">
