@@ -1,23 +1,34 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { XCircle, Star } from "lucide-react";
 import { toast } from "react-toastify";
-import { useCreateRatingMutation } from "../../app/api/ratingApi";
+import { useCreateRatingMutation, useUpdateRatingMutation } from "../../app/api/ratingApi";
 import { useAppSelector } from "../../app/store/store";
+import type { Rating } from "../../app/models/responses/rating";
 
 interface RatingModalProps {
   orderId: string;
   productId: string;
   productName: string;
+  isEdit?: boolean;
+  existingRating?: Rating;
   onClose: () => void;
 }
 
-const RatingModal = ({ productId, productName, onClose }: RatingModalProps) => {
-  const [ratingValue, setRatingValue] = useState<number>(0);
-  const [comment, setComment] = useState<string>("");
-  const [createRating, { isLoading }] = useCreateRatingMutation();
+const RatingModal = ({ productId, productName, isEdit = false, existingRating, onClose }: RatingModalProps) => {
+  const [ratingValue, setRatingValue] = useState<number>(existingRating?.value || 0);
+  const [comment, setComment] = useState<string>(existingRating?.comment || "");
+  const [createRating, { isLoading: isCreating }] = useCreateRatingMutation();
+  const [updateRating, { isLoading: isUpdating }] = useUpdateRatingMutation();
   const { darkMode } = useAppSelector((state) => state.ui);
+
+  useEffect(() => {
+    if (isEdit && existingRating) {
+      setRatingValue(existingRating.value);
+      setComment(existingRating.comment || "");
+    }
+  }, [isEdit, existingRating]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,13 +36,18 @@ const RatingModal = ({ productId, productName, onClose }: RatingModalProps) => {
       const formData = new FormData();
       formData.append("Value", ratingValue.toString());
       formData.append("Comment", comment);
-      formData.append("ProductId", productId);
-
-      await createRating(formData).unwrap();
-      toast.success(`Đã gửi đánh giá cho sản phẩm ${productName}!`);
+      formData.append("ProductId", productId); // Include ProductId for both create and update
+      if (!isEdit) {
+        await createRating(formData).unwrap();
+        toast.success(`Đã gửi đánh giá cho sản phẩm ${productName}!`);
+      } else {
+        if (!existingRating?.id) throw new Error("Không tìm thấy đánh giá để sửa");
+        await updateRating({ id: existingRating.id, data: formData }).unwrap();
+        toast.success(`Đã cập nhật đánh giá cho sản phẩm ${productName}!`);
+      }
       onClose();
     } catch (err: any) {
-      const errorMessage = err?.data?.message || "Không thể gửi đánh giá. Vui lòng thử lại.";
+      const errorMessage = err?.data?.message || `Không thể ${isEdit ? "cập nhật" : "gửi"} đánh giá. Vui lòng thử lại.`;
       toast.error(errorMessage);
     }
   };
@@ -59,7 +75,7 @@ const RatingModal = ({ productId, productName, onClose }: RatingModalProps) => {
       >
         <div className="flex justify-between items-center mb-4">
           <h2 id="rating-modal-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-            Đánh giá sản phẩm: {productName}
+            {isEdit ? "Sửa đánh giá" : "Đánh giá sản phẩm"}: {productName}
           </h2>
           <button
             onClick={onClose}
@@ -125,12 +141,12 @@ const RatingModal = ({ productId, productName, onClose }: RatingModalProps) => {
             </button>
             <button
               type="submit"
-              disabled={isLoading || ratingValue === 0}
+              disabled={isCreating || isUpdating || ratingValue === 0}
               className={`px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 ${
-                isLoading || ratingValue === 0 ? "opacity-50 cursor-not-allowed" : ""
+                isCreating || isUpdating || ratingValue === 0 ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
-              Gửi đánh giá
+              {isEdit ? "Cập nhật đánh giá" : "Gửi đánh giá"}
             </button>
           </div>
         </form>

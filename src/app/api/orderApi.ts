@@ -1,7 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithErrorHandling } from "./baseApi";
 import { OrderParams } from "../models/params/orderParams";
-import { OrderStatusRequest } from "../models/requests/orderStatusRequest";
 import { Order } from "../models/responses/order";
 import { PaginationParams } from "../models/params/pagination";
 
@@ -50,26 +49,6 @@ export const orderApi = createApi({
       }),
       invalidatesTags: ["Orders"],
     }),
-    updateOrderStatus: builder.mutation<
-      Order,
-      { id: string; data: OrderStatusRequest }
-    >({
-      query: ({ id, data }) => ({
-        url: `Orders/${id}/status`, // Adjusted to match backend route
-        method: "PUT",
-        body: data,
-        // If backend expects form data, configure headers and body
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        transformBody: (body: OrderStatusRequest) => {
-          const formData = new FormData();
-          formData.append("Status", body.status);
-          return formData;
-        },
-      }),
-      invalidatesTags: ["Orders"],
-    }),
     cancelOrder: builder.mutation<void, { id: string; cancellationReason?: string }>({
       query: ({ id, cancellationReason }) => ({
         url: `Orders/${id}/cancel`, // Fixed to match backend route
@@ -93,7 +72,6 @@ export const {
   useFetchSelfOrdersQuery,
   useGetOrderByIdQuery,
   useCreateOrderMutation,
-  useUpdateOrderStatusMutation,
   useCancelOrderMutation,
   useHandlePaymentCallbackQuery,
 } = orderApi;

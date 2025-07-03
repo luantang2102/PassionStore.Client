@@ -78,7 +78,7 @@ export const ratingApi = createApi({
       }),
       invalidatesTags: ["Ratings"],
     }),
-    hasRatedProduct: builder.query<boolean, string>({
+    getUserRatingForProduct: builder.query<Rating | null, string>({
       query: (productId) => ({
         url: `Ratings/has-rated/${productId}`,
         method: "GET",
@@ -96,5 +96,5 @@ export const {
   useUpdateRatingMutation,
   useDeleteRatingMutation,
   useToggleHelpfulMutation,
-  useHasRatedProductQuery,
+  useGetUserRatingForProductQuery,
 } = ratingApi;

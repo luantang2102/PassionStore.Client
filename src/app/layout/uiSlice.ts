@@ -23,11 +23,11 @@ export const uiSlice = createSlice({
       state.isLoading = action.payload;
     },
     toggleDarkMode: (state) => {
-      const newDarkMode = !state.darkMode;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
-      }
-      state.darkMode = newDarkMode;
+      // const newDarkMode = !state.darkMode;
+      // if (typeof window !== 'undefined') {
+      //   localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
+      // }
+      state.darkMode = false;
     },
     setSidebarOpen: (state, action) => {
       state.openSideBar = action.payload;

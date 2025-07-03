@@ -16,13 +16,15 @@ import {
   Wallet,
   Star,
   ShoppingCart,
+  Edit,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useAppSelector } from "../../app/store/store";
 import { useFetchSelfOrdersQuery, useGetOrderByIdQuery, useCancelOrderMutation } from "../../app/api/orderApi";
-import { useHasRatedProductQuery } from "../../app/api/ratingApi";
+import { useGetUserRatingForProductQuery } from "../../app/api/ratingApi";
 import { Order, PaymentMethod, ShippingMethod } from "../../app/models/responses/order";
 import type { OrderItem } from "../../app/models/responses/order";
+import type { Rating } from "../../app/models/responses/rating";
 import RatingModal from "./RatingModal";
 
 // Define OrderStatus enum to mirror backend
@@ -135,13 +137,13 @@ const groupOrderItemsByProductId = (orderItems: OrderItem[]) => {
 interface OrderItemProps {
   product: { productId: string; productName: string; variants: OrderItem[]; totalPrice: number };
   order: Order;
-  setRatingOrder: (rating: { orderId: string; productId: string; productName: string } | null) => void;
+  setRatingOrder: (rating: { orderId: string; productId: string; productName: string; rating?: Rating; isEdit?: boolean } | null) => void;
 }
 
 const OrderItem = ({ product, order, setRatingOrder }: OrderItemProps) => {
   const navigate = useNavigate();
   const { darkMode } = useAppSelector((state) => state.ui);
-  const { data: hasRated, isLoading: isRatingLoading, error } = useHasRatedProductQuery(product.productId);
+  const { data: userRating, isLoading: isRatingLoading, error } = useGetUserRatingForProductQuery(product.productId);
 
   return (
     <div className="border-b dark:border-gray-600 pb-2">
@@ -162,7 +164,7 @@ const OrderItem = ({ product, order, setRatingOrder }: OrderItemProps) => {
         <div className="text-right">
           <p className="font-semibold text-gray-900 dark:text-white">{formatPrice(product.totalPrice)}</p>
           <div className="mt-2 space-y-2">
-            {isEligibleForRating(order) && !isRatingLoading && !hasRated && !error && (
+            {isEligibleForRating(order) && !isRatingLoading && !userRating && !error && (
               <button
                 onClick={() =>
                   setRatingOrder({
@@ -177,7 +179,24 @@ const OrderItem = ({ product, order, setRatingOrder }: OrderItemProps) => {
                 Thêm đánh giá
               </button>
             )}
-            {(order.status === OrderStatus.Cancelled || (isEligibleForRating(order) && hasRated)) && (
+            {isEligibleForRating(order) && userRating && (
+              <button
+                onClick={() =>
+                  setRatingOrder({
+                    orderId: order.id,
+                    productId: product.productId,
+                    productName: product.productName,
+                    rating: userRating,
+                    isEdit: true,
+                  })
+                }
+                className="px-4 py-1 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900 rounded-lg transition-colors duration-200 text-sm"
+              >
+                <Edit className="h-4 w-4 inline mr-2" />
+                Sửa đánh giá
+              </button>
+            )}
+            {(order.status === OrderStatus.Cancelled || (isEligibleForRating(order) && userRating)) && (
               <button
                 onClick={() => navigate(`/products/${product.productId}`)}
                 className="px-4 py-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-lg transition-colors duration-200 text-sm"
@@ -189,8 +208,8 @@ const OrderItem = ({ product, order, setRatingOrder }: OrderItemProps) => {
             {isRatingLoading && (
               <p className="text-sm text-gray-600 dark:text-gray-300">Đang kiểm tra trạng thái đánh giá...</p>
             )}
-            {hasRated && order.status !== OrderStatus.Cancelled && (
-              <p className="text-sm text-gray-600 dark:text-gray-300">Bạn đã đánh giá sản phẩm này</p>
+            {userRating && order.status !== OrderStatus.Cancelled && !isEligibleForRating(order) && (
+              <p className="text-sm text-gray-600 dark:text-gray-300">Bạn đã đánh giá sản phẩm này: {userRating.value} sao</p>
             )}
             {error && (
               <p className="text-sm text-red-600 dark:text-red-400">Lỗi khi kiểm tra trạng thái đánh giá</p>
@@ -207,7 +226,7 @@ const Orders = () => {
   const { darkMode } = useAppSelector((state) => state.ui);
   const [pageNumber, setPageNumber] = useState(1);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [ratingOrder, setRatingOrder] = useState<{ orderId: string; productId: string; productName: string } | null>(null);
+  const [ratingOrder, setRatingOrder] = useState<{ orderId: string; productId: string; productName: string; rating?: Rating; isEdit?: boolean } | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const pageSize = 5;
@@ -585,6 +604,8 @@ const Orders = () => {
               orderId={ratingOrder.orderId}
               productId={ratingOrder.productId}
               productName={ratingOrder.productName}
+              isEdit={ratingOrder.isEdit}
+              existingRating={ratingOrder.rating}
               onClose={() => setRatingOrder(null)}
             />
           )}
