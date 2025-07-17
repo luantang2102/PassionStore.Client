@@ -213,7 +213,7 @@ const SignIn = () => {
     try {
       await sendVerificationCode({ email: verifyEmail }).unwrap();
       setResendCooldown(60);
-      setErrorMessage("Verification code resent successfully");
+      setErrorMessage("Gửi lại mã xác minh thành công. Vui lòng kiểm tra email của bạn.");
     } catch (error: any) {
       console.error("Resend code error:", error);
       setErrorMessage(getErrorMessage(error));
@@ -402,7 +402,7 @@ const SignIn = () => {
                       <>
                         <div className="space-y-2">
                           <label htmlFor="userName" className="text-sm font-medium text-gray-700">
-                            Họ và Tên
+                            Tên tài khoản (Không chứa dấu cách)
                           </label>
                           <div className="relative">
                             <User

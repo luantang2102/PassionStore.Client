@@ -1,5 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -45,12 +46,372 @@ function useDebounce(value: string, delay: number): string {
   return debouncedValue;
 }
 
+// FilterContent Component (Extracted and Memoized)
+interface FilterContentProps {
+  params: ProductParams;
+  categories: Category[];
+  colors: { id: string; name: string }[];
+  sizes: { id: string; name: string }[];
+  brands: { id: string; name: string }[];
+  visibleCategories: string[];
+  visibleColors: number;
+  visibleSizes: number;
+  visibleBrands: number;
+  showColorSearch: boolean;
+  showSizeSearch: boolean;
+  showBrandSearch: boolean;
+  colorSearch: string;
+  sizeSearch: string;
+  brandSearch: string;
+  colorSearchRef: React.RefObject<HTMLInputElement>;
+  sizeSearchRef: React.RefObject<HTMLInputElement>;
+  brandSearchRef: React.RefObject<HTMLInputElement>;
+  toggleCategory: (categoryId: string) => void;
+  setShowColorSearch: (show: boolean) => void;
+  setShowSizeSearch: (show: boolean) => void;
+  setShowBrandSearch: (show: boolean) => void;
+  setColorSearch: (value: string) => void;
+  setSizeSearch: (value: string) => void;
+  setBrandSearch: (value: string) => void;
+  setVisibleColors: React.Dispatch<React.SetStateAction<number>>;
+  setVisibleSizes: React.Dispatch<React.SetStateAction<number>>;
+  setVisibleBrands: React.Dispatch<React.SetStateAction<number>>;
+  handleCategoryChange: (categoryId: string, checked: boolean) => void;
+  handleColorChange: (colorId: string, checked: boolean) => void;
+  handleSizeChange: (sizeId: string, checked: boolean) => void;
+  handleBrandChange: (brandId: string, checked: boolean) => void;
+  handlePriceRangeChange: (minPrice: number, maxPrice: number) => void;
+  handleQuickFilterChange: (key: keyof ProductParams, value: boolean) => void;
+  clearAllFilters: () => void;
+}
+
+const FilterContent = memo(
+  ({
+    params,
+    categories,
+    colors,
+    sizes,
+    brands,
+    visibleCategories,
+    visibleColors,
+    visibleSizes,
+    visibleBrands,
+    showColorSearch,
+    showSizeSearch,
+    showBrandSearch,
+    colorSearch,
+    sizeSearch,
+    brandSearch,
+    colorSearchRef,
+    sizeSearchRef,
+    brandSearchRef,
+    toggleCategory,
+    setShowColorSearch,
+    setShowSizeSearch,
+    setShowBrandSearch,
+    setColorSearch,
+    setSizeSearch,
+    setBrandSearch,
+    setVisibleColors,
+    setVisibleSizes,
+    setVisibleBrands,
+    handleCategoryChange,
+    handleColorChange,
+    handleSizeChange,
+    handleBrandChange,
+    handlePriceRangeChange,
+    handleQuickFilterChange,
+    clearAllFilters,
+  }: FilterContentProps) => {
+    const formatPrice = (price: number) => {
+      return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
+    };
+
+    const renderCategoryTree = (categories: Category[], level: number = 0) => {
+      return categories.map((category) => (
+        <div key={category.id} style={{ marginLeft: `${level * 16}px` }}>
+          <div className="flex items-center space-x-2">
+            {category.subCategories && category.subCategories.length > 0 && (
+              <button onClick={() => toggleCategory(category.id)}>
+                {visibleCategories.includes(category.id) ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            )}
+            <input
+              type="checkbox"
+              id={`category-${category.id}`}
+              checked={params.categories?.split(",").includes(category.id) || false}
+              onChange={(e) => handleCategoryChange(category.id, e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor={`category-${category.id}`} className="text-sm text-gray-700 dark:text-gray-300">
+              {category.name}
+            </label>
+          </div>
+          {category.subCategories && visibleCategories.includes(category.id) && (
+            <div className="ml-4">{renderCategoryTree(category.subCategories, level + 1)}</div>
+          )}
+        </div>
+      ));
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Quick Filters */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900 dark:text-white">Bộ lọc nhanh</h3>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isFeatured"
+                checked={!!params.isFeatured}
+                onChange={(e) => handleQuickFilterChange("isFeatured", e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="isFeatured" className="text-sm text-gray-700 dark:text-gray-300">Sản phẩm nổi bật</label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isSale"
+                checked={!!params.isSale}
+                onChange={(e) => handleQuickFilterChange("isSale", e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="isSale" className="text-sm text-gray-700 dark:text-gray-300">Đang khuyến mãi</label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isNew"
+                checked={!!params.isNew}
+                onChange={(e) => handleQuickFilterChange("isNew", e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="isNew" className="text-sm text-gray-700 dark:text-gray-300">Sản phẩm mới</label>
+            </div>
+          </div>
+        </div>
+
+        {/* Price Range */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900 dark:text-white">Khoảng giá</h3>
+          <div className="px-2">
+            <input
+              type="range"
+              min={0}
+              max={6000000}
+              step={50000}
+              value={params.minPrice ?? 0}
+              onChange={(e) => handlePriceRangeChange(+e.target.value, params.maxPrice ?? 6000000)}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <input
+              type="range"
+              min={0}
+              max={6000000}
+              step={50000}
+              value={params.maxPrice ?? 6000000}
+              onChange={(e) => handlePriceRangeChange(params.minPrice ?? 0, +e.target.value)}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2"
+            />
+            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mt-2">
+              <span>{formatPrice(params.minPrice ?? 0)}</span>
+              <span>{formatPrice(params.maxPrice ?? 6000000)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Categories */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900 dark:text-white">Danh mục</h3>
+          <div className="space-y-3 max-h-48 overflow-y-auto">
+            {renderCategoryTree(categories)}
+          </div>
+        </div>
+
+        {/* Colors */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900 dark:text-white">Màu sắc</h3>
+            <button
+              onClick={() => setShowColorSearch(!showColorSearch)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
+          <AnimatePresence>
+            {showColorSearch && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="relative overflow-hidden"
+              >
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  ref={colorSearchRef}
+                  placeholder="Tìm kiếm màu sắc..."
+                  value={colorSearch}
+                  onChange={(e) => setColorSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:outline-none text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="space-y-3 max-h-40 overflow-y-auto">
+            {colors.slice(0, visibleColors).map((color) => (
+              <div key={color.id} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={`color-${color.id}`}
+                  checked={params.colors?.split(",").includes(color.id) || false}
+                  onChange={(e) => handleColorChange(color.id, e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor={`color-${color.id}`} className="text-sm text-gray-700 dark:text-gray-300">{color.name}</label>
+              </div>
+            ))}
+          </div>
+          {colors.length > visibleColors && (
+            <button
+              onClick={() => setVisibleColors((prev) => prev + 30)}
+              className="text-blue-600 hover:text-blue-700 text-sm"
+            >
+              Xem thêm
+            </button>
+          )}
+        </div>
+
+        {/* Sizes */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900 dark:text-white">Kích thước</h3>
+            <button
+              onClick={() => setShowSizeSearch(!showSizeSearch)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
+          <AnimatePresence>
+            {showSizeSearch && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="relative overflow-hidden"
+              >
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  ref={sizeSearchRef}
+                  placeholder="Tìm kiếm kích thước..."
+                  value={sizeSearch}
+                  onChange={(e) => setSizeSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:outline-none text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="space-y-3 max-h-40 overflow-y-auto">
+            {sizes.slice(0, visibleSizes).map((size) => (
+              <div key={size.id} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={`size-${size.id}`}
+                  checked={params.sizes?.split(",").includes(size.id) || false}
+                  onChange={(e) => handleSizeChange(size.id, e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor={`size-${size.id}`} className="text-sm text-gray-700 dark:text-gray-300">{size.name}</label>
+              </div>
+            ))}
+          </div>
+          {sizes.length > visibleSizes && (
+            <button
+              onClick={() => setVisibleSizes((prev) => prev + 30)}
+              className="text-blue-600 hover:text-blue-700 text-sm"
+            >
+              Xem thêm
+            </button>
+          )}
+        </div>
+
+        {/* Brands */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900 dark:text-white">Thương hiệu</h3>
+            <button
+              onClick={() => setShowBrandSearch(!showBrandSearch)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
+          <AnimatePresence>
+            {showBrandSearch && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="relative overflow-hidden"
+              >
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  ref={brandSearchRef}
+                  placeholder="Tìm kiếm thương hiệu..."
+                  value={brandSearch}
+                  onChange={(e) => setBrandSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:outline-none text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="space-y-3 max-h-40 overflow-y-auto">
+            {brands.slice(0, visibleBrands).map((brand) => (
+              <div key={brand.id} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={`brand-${brand.id}`}
+                  checked={params.brands?.split(",").includes(brand.id) || false}
+                  onChange={(e) => handleBrandChange(brand.id, e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor={`brand-${brand.id}`} className="text-sm text-gray-700 dark:text-gray-300">{brand.name}</label>
+              </div>
+            ))}
+          </div>
+          {brands.length > visibleBrands && (
+            <button
+              onClick={() => setVisibleBrands((prev) => prev + 30)}
+              className="text-blue-600 hover:text-blue-700 text-sm"
+            >
+              Xem thêm
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={clearAllFilters}
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-md py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        >
+          Xóa tất cả bộ lọc
+        </button>
+      </div>
+    );
+  }
+);
+
 const Products = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { params } = useAppSelector((state: RootState) => state.product);
   const { isAuthenticated } = useAppSelector((state: RootState) => state.auth);
-  const { darkMode } = useAppSelector((state: RootState) => state.ui);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [modalProduct, setModalProduct] = useState<Product | null>(null);
@@ -71,22 +432,19 @@ const Products = () => {
 
   // Search states for filters
   const [searchTerm, setSearchTerm] = useState(params.searchTerm || "");
-  const [categorySearch, setCategorySearch] = useState("");
   const [colorSearch, setColorSearch] = useState("");
   const [sizeSearch, setSizeSearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
 
   // Toggle states for search inputs
-  const [showCategorySearch, setShowCategorySearch] = useState(false);
   const [showColorSearch, setShowColorSearch] = useState(false);
   const [showSizeSearch, setShowSizeSearch] = useState(false);
   const [showBrandSearch, setShowBrandSearch] = useState(false);
 
   // Refs for focusing inputs
-  const categorySearchRef = useRef<HTMLInputElement>(null);
-  const colorSearchRef = useRef<HTMLInputElement>(null);
-  const sizeSearchRef = useRef<HTMLInputElement>(null);
-  const brandSearchRef = useRef<HTMLInputElement>(null);
+  const colorSearchRef = useRef<HTMLInputElement>(null as unknown as HTMLInputElement);
+  const sizeSearchRef = useRef<HTMLInputElement>(null as unknown as HTMLInputElement);
+  const brandSearchRef = useRef<HTMLInputElement>(null as unknown as HTMLInputElement);
 
   // Debounced search terms (1-second delay)
   const debouncedSearchTerm = useDebounce(searchTerm, 1000);
@@ -127,12 +485,6 @@ const Products = () => {
 
   // Focus input when search bar is toggled visible
   useEffect(() => {
-    if (showCategorySearch && categorySearchRef.current) {
-      categorySearchRef.current.focus();
-    }
-  }, [showCategorySearch]);
-
-  useEffect(() => {
     if (showColorSearch && colorSearchRef.current) {
       colorSearchRef.current.focus();
     }
@@ -158,67 +510,106 @@ const Products = () => {
     }
   }, [modalProduct]);
 
-  // Handle product params
-  const handleSearchChange = (value: string) => {
+  // Memoized handler functions
+  const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
-  };
+  }, []);
 
-  const handleCategoryChange = (categoryId: string, checked: boolean) => {
-    const currentCategories = params.categories ? params.categories.split(",") : [];
-    const newCategories = checked
-      ? [...currentCategories, categoryId]
-      : currentCategories.filter((c) => c !== categoryId);
-    dispatch(setParams({ categories: newCategories.length > 0 ? newCategories.join(",") : undefined }));
-  };
+  const getAllChildCategoryIds = useCallback((category: Category): string[] => {
+    const childIds = category.subCategories?.reduce((acc: string[], subCategory: Category) => {
+      return [...acc, subCategory.id, ...getAllChildCategoryIds(subCategory)];
+    }, []) || [];
+    return childIds;
+  }, []);
 
-  const handleColorChange = (colorId: string, checked: boolean) => {
-    const currentColors = params.colors ? params.colors.split(",") : [];
-    const newColors = checked
-      ? [...currentColors, colorId]
-      : currentColors.filter((c) => c !== colorId);
-    dispatch(setParams({ colors: newColors.length > 0 ? newColors.join(",") : undefined }));
-  };
+  const handleCategoryChange = useCallback(
+    (categoryId: string, checked: boolean) => {
+      const currentCategories = params.categories ? params.categories.split(",") : [];
+      const allCategories = flattenCategories(categories);
+      const category = allCategories.find((c) => c.id === categoryId);
+      if (!category) return;
 
-  const handleSizeChange = (sizeId: string, checked: boolean) => {
-    const currentSizes = params.sizes ? params.sizes.split(",") : [];
-    const newSizes = checked
-      ? [...currentSizes, sizeId]
-      : currentSizes.filter((s) => s !== sizeId);
-    dispatch(setParams({ sizes: newSizes.length > 0 ? newSizes.join(",") : undefined }));
-  };
+      const childIds = getAllChildCategoryIds(category);
+      let newCategories: string[];
 
-  const handleBrandChange = (brandId: string, checked: boolean) => {
-    const currentBrands = params.brands ? params.brands.split(",") : [];
-    const newBrands = checked
-      ? [...currentBrands, brandId]
-      : currentBrands.filter((b) => b !== brandId);
-    dispatch(setParams({ brands: newBrands.length > 0 ? newBrands.join(",") : undefined }));
-  };
+      if (checked) {
+        newCategories = [...new Set([...currentCategories, categoryId, ...childIds])];
+      } else {
+        newCategories = currentCategories.filter((c) => c !== categoryId && !childIds.includes(c));
+      }
 
-  const handlePriceRangeChange = (minPrice: number, maxPrice: number) => {
-    dispatch(setParams({ minPrice: minPrice || undefined, maxPrice: maxPrice || undefined }));
-  };
+      dispatch(setParams({ categories: newCategories.length > 0 ? newCategories.join(",") : undefined }));
+    },
+    [params.categories, categories, dispatch]
+  );
 
-  const handleQuickFilterChange = (key: keyof ProductParams, value: boolean) => {
-    dispatch(setParams({ [key]: value }));
-  };
+  const handleColorChange = useCallback(
+    (colorId: string, checked: boolean) => {
+      const currentColors = params.colors ? params.colors.split(",") : [];
+      const newColors = checked
+        ? [...currentColors, colorId]
+        : currentColors.filter((c) => c !== colorId);
+      dispatch(setParams({ colors: newColors.length > 0 ? newColors.join(",") : undefined }));
+    },
+    [params.colors, dispatch]
+  );
 
-  const handleSortChange = (orderBy: string) => {
-    dispatch(setParams({ orderBy: orderBy }));
-  };
+  const handleSizeChange = useCallback(
+    (sizeId: string, checked: boolean) => {
+      const currentSizes = params.sizes ? params.sizes.split(",") : [];
+      const newSizes = checked
+        ? [...currentSizes, sizeId]
+        : currentSizes.filter((s) => s !== sizeId);
+      dispatch(setParams({ sizes: newSizes.length > 0 ? newSizes.join(",") : undefined }));
+    },
+    [params.sizes, dispatch]
+  );
 
-  const handlePageChange = (page: number) => {
-    dispatch(setPageNumber(page));
-  };
+  const handleBrandChange = useCallback(
+    (brandId: string, checked: boolean) => {
+      const currentBrands = params.brands ? params.brands.split(",") : [];
+      const newBrands = checked
+        ? [...currentBrands, brandId]
+        : currentBrands.filter((b) => b !== brandId);
+      dispatch(setParams({ brands: newBrands.length > 0 ? newBrands.join(",") : undefined }));
+    },
+    [params.brands, dispatch]
+  );
 
-  const clearAllFilters = () => {
+  const handlePriceRangeChange = useCallback(
+    (minPrice: number, maxPrice: number) => {
+      dispatch(setParams({ minPrice: minPrice || undefined, maxPrice: maxPrice || undefined }));
+    },
+    [dispatch]
+  );
+
+  const handleQuickFilterChange = useCallback(
+    (key: keyof ProductParams, value: boolean) => {
+      dispatch(setParams({ [key]: value }));
+    },
+    [dispatch]
+  );
+
+  const handleSortChange = useCallback(
+    (orderBy: string) => {
+      dispatch(setParams({ orderBy }));
+    },
+    [dispatch]
+  );
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      dispatch(setPageNumber(page));
+    },
+    [dispatch]
+  );
+
+  const clearAllFilters = useCallback(() => {
     dispatch(resetParams());
     setSearchTerm("");
-    setCategorySearch("");
     setColorSearch("");
     setSizeSearch("");
     setBrandSearch("");
-    setShowCategorySearch(false);
     setShowColorSearch(false);
     setShowSizeSearch(false);
     setShowBrandSearch(false);
@@ -226,27 +617,25 @@ const Products = () => {
     setVisibleColors(6);
     setVisibleSizes(6);
     setVisibleBrands(6);
-  };
+  }, []);
 
-  const formatPrice = (price: number) => {
+  const formatPrice = useCallback((price: number) => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
-  };
+  }, []);
 
-  const getMainImage = (product: Product) => {
+  const getMainImage = useCallback((product: Product) => {
     return product.productImages[0]?.imageUrl || "/placeholder.svg?height=300&width=300";
-  };
+  }, []);
 
-  // Toggle category expansion
-  const toggleCategory = (categoryId: string) => {
+  const toggleCategory = useCallback((categoryId: string) => {
     setVisibleCategories((prev) =>
       prev.includes(categoryId)
         ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId]
     );
-  };
+  }, []);
 
-  // Handle add to cart
-  const handleAddToCart = async () => {
+  const handleAddToCart = useCallback(async () => {
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng!");
       navigate("/signin");
@@ -269,323 +658,16 @@ const Products = () => {
     } catch (err) {
       toast.error("Không thể thêm vào giỏ hàng. Vui lòng thử lại.");
     }
-  };
+  }, [isAuthenticated, selectedVariant, quantity, addCartItem, navigate]);
 
-  // Flatten category tree for chip rendering
-  const flattenCategories = (categories: Category[]): Category[] => {
+  const flattenCategories = useCallback((categories: Category[]): Category[] => {
     return categories.reduce((acc: Category[], category: Category) => {
       const subCategories = category.subCategories ? flattenCategories(category.subCategories) : [];
       return [...acc, category, ...subCategories];
     }, []);
-  };
+  }, []);
 
   const allCategories = flattenCategories(categories);
-
-  // Render category tree
-  const renderCategoryTree = (categories: Category[], level: number = 0) => {
-    return categories.map((category) => (
-      <div key={category.id} style={{ marginLeft: `${level * 16}px` }}>
-        <div className="flex items-center space-x-2">
-          {category.subCategories && category.subCategories.length > 0 && (
-            <button onClick={() => toggleCategory(category.id)}>
-              {visibleCategories.includes(category.id) ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </button>
-          )}
-          <input
-            type="checkbox"
-            id={`category-${category.id}`}
-            checked={params.categories?.split(",").includes(category.id) || false}
-            onChange={(e) => handleCategoryChange(category.id, e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          <label htmlFor={`category-${category.id}`} className="text-sm text-gray-700 dark:text-gray-300">
-            {category.name}
-          </label>
-        </div>
-        {category.subCategories && visibleCategories.includes(category.id) && (
-          <div className="ml-4">{renderCategoryTree(category.subCategories, level + 1)}</div>
-        )}
-      </div>
-    ));
-  };
-
-  const FilterContent = () => (
-    <div className="space-y-6">
-      {/* Quick Filters */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-gray-900 dark:text-white">Bộ lọc nhanh</h3>
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="isFeatured"
-              checked={!!params.isFeatured}
-              onChange={(e) => handleQuickFilterChange("isFeatured", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="isFeatured" className="text-sm text-gray-700 dark:text-gray-300">Sản phẩm nổi bật</label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="isSale"
-              checked={!!params.isSale}
-              onChange={(e) => handleQuickFilterChange("isSale", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="isSale" className="text-sm text-gray-700 dark:text-gray-300">Đang khuyến mãi</label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="isNew"
-              checked={!!params.isNew}
-              onChange={(e) => handleQuickFilterChange("isNew", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="isNew" className="text-sm text-gray-700 dark:text-gray-300">Sản phẩm mới</label>
-          </div>
-        </div>
-      </div>
-
-      {/* Price Range */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-gray-900 dark:text-white">Khoảng giá</h3>
-        <div className="px-2">
-          <input
-            type="range"
-            min={0}
-            max={6000000}
-            step={50000}
-            value={params.minPrice ?? 0}
-            onChange={(e) => handlePriceRangeChange(+e.target.value, params.maxPrice ?? 6000000)}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          />
-          <input
-            type="range"
-            min={0}
-            max={6000000}
-            step={50000}
-            value={params.maxPrice ?? 6000000}
-            onChange={(e) => handlePriceRangeChange(params.minPrice ?? 0, +e.target.value)}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2"
-          />
-          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300 mt-2">
-            <span>{formatPrice(params.minPrice ?? 0)}</span>
-            <span>{formatPrice(params.maxPrice ?? 6000000)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Categories */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Danh mục</h3>
-          <button
-            onClick={() => setShowCategorySearch(!showCategorySearch)}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-        </div>
-        <AnimatePresence>
-          {showCategorySearch && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="relative overflow-hidden"
-            >
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                ref={categorySearchRef}
-                placeholder="Tìm kiếm danh mục..."
-                value={categorySearch}
-                onChange={(e) => setCategorySearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:outline-none text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <div className="space-y-3 max-h-48 overflow-y-auto">
-          {renderCategoryTree(categories)}
-        </div>
-      </div>
-
-      {/* Colors */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Màu sắc</h3>
-          <button
-            onClick={() => setShowColorSearch(!showColorSearch)}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-        </div>
-        <AnimatePresence>
-          {showColorSearch && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="relative overflow-hidden"
-            >
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                ref={colorSearchRef}
-                placeholder="Tìm kiếm màu sắc..."
-                value={colorSearch}
-                onChange={(e) => setColorSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:outline-none text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <div className="space-y-3 max-h-40 overflow-y-auto">
-          {colors.slice(0, visibleColors).map((color) => (
-            <div key={color.id} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id={`color-${color.id}`}
-                checked={params.colors?.split(",").includes(color.id) || false}
-                onChange={(e) => handleColorChange(color.id, e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor={`color-${color.id}`} className="text-sm text-gray-700 dark:text-gray-300">{color.name}</label>
-            </div>
-          ))}
-        </div>
-        {colors.length > visibleColors && (
-          <button
-            onClick={() => setVisibleColors((prev) => prev + 30)}
-            className="text-blue-600 hover:text-blue-700 text-sm"
-          >
-            Xem thêm
-          </button>
-        )}
-      </div>
-
-      {/* Sizes */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Kích thước</h3>
-          <button
-            onClick={() => setShowSizeSearch(!showSizeSearch)}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-        </div>
-        <AnimatePresence>
-          {showSizeSearch && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="relative overflow-hidden"
-            >
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                ref={sizeSearchRef}
-                placeholder="Tìm kiếm kích thước..."
-                value={sizeSearch}
-                onChange={(e) => setSizeSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:outline-none text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <div className="space-y-3 max-h-40 overflow-y-auto">
-          {sizes.slice(0, visibleSizes).map((size) => (
-            <div key={size.id} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id={`size-${size.id}`}
-                checked={params.sizes?.split(",").includes(size.id) || false}
-                onChange={(e) => handleSizeChange(size.id, e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor={`size-${size.id}`} className="text-sm text-gray-700 dark:text-gray-300">{size.name}</label>
-            </div>
-          ))}
-        </div>
-        {sizes.length > visibleSizes && (
-          <button
-            onClick={() => setVisibleSizes((prev) => prev + 30)}
-            className="text-blue-600 hover:text-blue-700 text-sm"
-          >
-            Xem thêm
-          </button>
-        )}
-      </div>
-
-      {/* Brands */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Thương hiệu</h3>
-          <button
-            onClick={() => setShowBrandSearch(!showBrandSearch)}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-        </div>
-        <AnimatePresence>
-          {showBrandSearch && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="relative overflow-hidden"
-            >
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                ref={brandSearchRef}
-                placeholder="Tìm kiếm thương hiệu..."
-                value={brandSearch}
-                onChange={(e) => setBrandSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:outline-none text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <div className="space-y-3 max-h-40 overflow-y-auto">
-          {brands.slice(0, visibleBrands).map((brand) => (
-            <div key={brand.id} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id={`brand-${brand.id}`}
-                checked={params.brands?.split(",").includes(brand.id) || false}
-                onChange={(e) => handleBrandChange(brand.id, e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor={`brand-${brand.id}`} className="text-sm text-gray-700 dark:text-gray-300">{brand.name}</label>
-            </div>
-          ))}
-        </div>
-        {brands.length > visibleBrands && (
-          <button
-            onClick={() => setVisibleBrands((prev) => prev + 30)}
-            className="text-blue-600 hover:text-blue-700 text-sm"
-          >
-            Xem thêm
-          </button>
-        )}
-      </div>
-
-      <button
-        onClick={clearAllFilters}
-        className="w-full border border-gray-300 dark:border-gray-600 rounded-md py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-      >
-        Xóa tất cả bộ lọc
-      </button>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900">
@@ -609,7 +691,43 @@ const Products = () => {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Bộ lọc</h2>
                 <SlidersHorizontal className="h-5 w-5 text-gray-500 dark:text-gray-300" />
               </div>
-              <FilterContent />
+              <FilterContent
+                params={params}
+                categories={categories}
+                colors={colors}
+                sizes={sizes}
+                brands={brands}
+                visibleCategories={visibleCategories}
+                visibleColors={visibleColors}
+                visibleSizes={visibleSizes}
+                visibleBrands={visibleBrands}
+                showColorSearch={showColorSearch}
+                showSizeSearch={showSizeSearch}
+                showBrandSearch={showBrandSearch}
+                colorSearch={colorSearch}
+                sizeSearch={sizeSearch}
+                brandSearch={brandSearch}
+                colorSearchRef={colorSearchRef}
+                sizeSearchRef={sizeSearchRef}
+                brandSearchRef={brandSearchRef}
+                toggleCategory={toggleCategory}
+                setShowColorSearch={setShowColorSearch}
+                setShowSizeSearch={setShowSizeSearch}
+                setShowBrandSearch={setShowBrandSearch}
+                setColorSearch={setColorSearch}
+                setSizeSearch={setSizeSearch}
+                setBrandSearch={setBrandSearch}
+                setVisibleColors={setVisibleColors}
+                setVisibleSizes={setVisibleSizes}
+                setVisibleBrands={setVisibleBrands}
+                handleCategoryChange={handleCategoryChange}
+                handleColorChange={handleColorChange}
+                handleSizeChange={handleSizeChange}
+                handleBrandChange={handleBrandChange}
+                handlePriceRangeChange={handlePriceRangeChange}
+                handleQuickFilterChange={handleQuickFilterChange}
+                clearAllFilters={clearAllFilters}
+              />
             </div>
           </div>
           <div className="flex-1">
@@ -648,7 +766,43 @@ const Products = () => {
                             <X className="h-4 w-4" />
                           </button>
                           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Bộ lọc sản phẩm</h2>
-                          <FilterContent />
+                          <FilterContent
+                            params={params}
+                            categories={categories}
+                            colors={colors}
+                            sizes={sizes}
+                            brands={brands}
+                            visibleCategories={visibleCategories}
+                            visibleColors={visibleColors}
+                            visibleSizes={visibleSizes}
+                            visibleBrands={visibleBrands}
+                            showColorSearch={showColorSearch}
+                            showSizeSearch={showSizeSearch}
+                            showBrandSearch={showBrandSearch}
+                            colorSearch={colorSearch}
+                            sizeSearch={sizeSearch}
+                            brandSearch={brandSearch}
+                            colorSearchRef={colorSearchRef}
+                            sizeSearchRef={sizeSearchRef}
+                            brandSearchRef={brandSearchRef}
+                            toggleCategory={toggleCategory}
+                            setShowColorSearch={setShowColorSearch}
+                            setShowSizeSearch={setShowSizeSearch}
+                            setShowBrandSearch={setShowBrandSearch}
+                            setColorSearch={setColorSearch}
+                            setSizeSearch={setSizeSearch}
+                            setBrandSearch={setBrandSearch}
+                            setVisibleColors={setVisibleColors}
+                            setVisibleSizes={setVisibleSizes}
+                            setVisibleBrands={setVisibleBrands}
+                            handleCategoryChange={handleCategoryChange}
+                            handleColorChange={handleColorChange}
+                            handleSizeChange={handleSizeChange}
+                            handleBrandChange={handleBrandChange}
+                            handlePriceRangeChange={handlePriceRangeChange}
+                            handleQuickFilterChange={handleQuickFilterChange}
+                            clearAllFilters={clearAllFilters}
+                          />
                         </div>
                       </div>
                     )}
@@ -663,7 +817,7 @@ const Products = () => {
                     onChange={(e) => handleSortChange(e.target.value)}
                     className="w-48 rounded-md border border-gray-200 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   >
-                    <option value="popularity">Phổ biến nhất</option>
+                    <option value="featured">Nổi bật nhất</option>
                     <option value="createdDate_desc">Mới nhất</option>
                     <option value="price_asc">Giá thấp đến cao</option>
                     <option value="price_desc">Giá cao đến thấp</option>

@@ -1,8 +1,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithErrorHandling } from "./baseApi";
 import { Category } from "../models/responses/category";
 import { PaginationParams } from "../models/params/pagination";
 import { CategoryParams } from "../models/params/categoryParams";
-import { baseQueryWithErrorHandling } from "./baseApi";
+
 
 export const categoryApi = createApi({
   reducerPath: "categoryApi",
@@ -35,7 +36,7 @@ export const categoryApi = createApi({
       },
       providesTags: ["Categories"],
     }),
-    
+
     fetchCategoryById: builder.query<Category, string>({
       query: (categoryId) => `categories/${categoryId}`,
       transformResponse: (response: Category) => {

@@ -450,6 +450,7 @@ export default function Cart() {
         const formData = new FormData();
         formData.append("PaymentMethod", selectedPayment);
         formData.append("ShippingMethod", selectedShipping);
+        formData.append("UserProfileId", selectedProfile?.id || "");
         if (note) formData.append("Note", note);
         const orderResponse = await createOrder(formData).unwrap();
         setOrderId(orderResponse.id);

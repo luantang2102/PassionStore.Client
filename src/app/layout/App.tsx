@@ -1,8 +1,10 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./components/Navbar";
-import { useAppSelector } from "../store/store";
+import Chat from "./components/Chat";
 import { createGlobalStyle } from "styled-components";
 import AuthInitializer from "./components/AuthInitializer";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const GlobalStyle = createGlobalStyle`
   .scrollbar-hide {
@@ -21,18 +23,18 @@ const GlobalStyle = createGlobalStyle`
 `;
 
 const App = () => {
-  const { darkMode } = useAppSelector((state) => state.ui);
 
   return (
     <AuthInitializer>
       <div
         className={`min-h-screen ${
-          darkMode ? "bg-gradient-to-br from-gray-800 to-gray-900" : "bg-gradient-to-br from-slate-50 to-blue-50"
+          "bg-gradient-to-br from-slate-50 to-blue-50"
         }`}
       >
         <GlobalStyle />
         <Navbar />
         <Outlet />
+        <Chat />
         <footer className="bg-gray-900 text-white py-12">
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-4 gap-8">
@@ -73,6 +75,18 @@ const App = () => {
             </div>
           </div>
         </footer>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme={"light"}
+        />
       </div>
     </AuthInitializer>
   );

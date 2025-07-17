@@ -1,8 +1,9 @@
 export interface CategoryParams {
-    pageNumber: number;
-    pageSize: number;
-    searchTerm?: string;
-    isActive?: boolean;
-    level?: number;
-    parentCategoryId?: string;
-  }
+  pageNumber?: number;
+  pageSize?: number;
+  orderBy?: string;
+  searchTerm?: string;
+  level?: number;
+  isActive?: boolean;
+  parentCategoryId?: string;
+}

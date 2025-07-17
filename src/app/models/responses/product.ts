@@ -13,6 +13,7 @@ export interface Product {
     inStock: boolean;
     stockQuantity: number;
     averageRating: number;
+    numberOfRatings: number;
     productImages: ProductImage[];
     categories: Category[];
     isFeatured: boolean;

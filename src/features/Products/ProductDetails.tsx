@@ -20,7 +20,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { useFetchProductByIdQuery } from "../../app/api/productApi";
+import { useFetchProductByIdQuery, useFetchProductsQuery } from "../../app/api/productApi";
 import { useAddCartItemMutation } from "../../app/api/cartApi";
 import { useFetchRatingsByProductIdQuery, useToggleHelpfulMutation } from "../../app/api/ratingApi";
 import { useAppSelector } from "../../app/store/store";
@@ -37,50 +37,6 @@ const sizeGuide = {
   "45": { eu: "45", us: "11", uk: "10.5", cm: "27.5" },
 };
 
-// Mock related products
-const relatedProducts = [
-  {
-    id: "2",
-    name: "Giày chạy bộ nữ - Run Comfort",
-    brand: { name: "KALENJI" },
-    minPrice: 1299000,
-    maxPrice: 1599000,
-    averageRating: 4.6,
-    totalReviews: 456,
-    productImages: [{ imageUrl: "/placeholder.svg?height=200&width=200&text=Related1", id: "img2", createdDate: "2024-01-01" }],
-  },
-  {
-    id: "3",
-    name: "Áo thun chạy bộ nam - Dry+",
-    brand: { name: "KALENJI" },
-    minPrice: 299000,
-    maxPrice: 299000,
-    averageRating: 4.4,
-    totalReviews: 234,
-    productImages: [{ imageUrl: "/placeholder.svg?height=200&width=200&text=Related2", id: "img3", createdDate: "2024-01-01" }],
-  },
-  {
-    id: "4",
-    name: "Quần short chạy bộ - Run Dry",
-    brand: { name: "KALENJI" },
-    minPrice: 399000,
-    maxPrice: 499000,
-    averageRating: 4.7,
-    totalReviews: 189,
-    productImages: [{ imageUrl: "/placeholder.svg?height=200&width=200&text=Related3", id: "img4", createdDate: "2024-01-01" }],
-  },
-  {
-    id: "5",
-    name: "Tất chạy bộ cao cổ",
-    brand: { name: "KALENJI" },
-    minPrice: 99000,
-    maxPrice: 99000,
-    averageRating: 4.3,
-    totalReviews: 567,
-    productImages: [{ imageUrl: "/placeholder.svg?height=200&width=200&text=Related4", id: "img5", createdDate: "2024-01-01" }],
-  },
-];
-
 // Interface for tracking helpful status
 interface HelpfulStatus {
   [ratingId: string]: boolean;
@@ -92,6 +48,12 @@ export default function ProductDetailPage() {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
 
   const { data: product, isLoading, error } = useFetchProductByIdQuery(id || "");
+  const { data: relatedProductsData, isLoading: isRelatedProductsLoading } = useFetchProductsQuery({
+    categories: product?.categories.map((c) => c.id).join(",") || "",
+    pageNumber: 1,
+    pageSize: 10,
+    // excludeProductId: id,
+  });
   const [addCartItem, { isLoading: isAddingCartItem, error: cartError }] = useAddCartItemMutation();
   const { data: ratingsData, isLoading: isRatingsLoading } = useFetchRatingsByProductIdQuery({
     productId: id || "",
@@ -108,6 +70,13 @@ export default function ProductDetailPage() {
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
   const [helpfulStatus, setHelpfulStatus] = useState<HelpfulStatus>({});
+
+  // Randomly select up to 4 related products
+  const relatedProducts = useMemo(() => {
+    if (!relatedProductsData?.items) return [];
+    const shuffled = [...relatedProductsData.items].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 4);
+  }, [relatedProductsData]);
 
   useEffect(() => {
     if (error) {
@@ -634,9 +603,7 @@ export default function ProductDetailPage() {
                     setIsWishlisted(!isWishlisted);
                     toast.success(isWishlisted ? "Đã xóa khỏi danh sách yêu thích!" : "Đã thêm vào danh sách yêu thích!");
                   }}
-                  className={`p-3 border border-gray-3
-
-00 dark:border-gray-600 rounded-lg ${
+                  className={`p-3 border border-gray-300 dark:border-gray-600 rounded-lg ${
                     isWishlisted ? "text-red-600 border-red-600" : "text-gray-700 dark:text-gray-300"
                   } hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200`}
                 >
@@ -656,10 +623,6 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-200 dark:border-gray-600">
-              <div className="flex items-center gap-2">
-                <Truck className="h-5 w-5 text-green-600" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Giao hàng miễn phí</span>
-              </div>
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-blue-600" />
                 <span className="text-sm text-gray-700 dark:text-gray-300">Bảo hành 12 tháng</span>
@@ -843,11 +806,7 @@ export default function ProductDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
-                        <Truck className="h-6 w-6 text-green-500" />
-                        <div>
-                          <div className="font-semibold text-gray-900 dark:text-white">Giao hàng miễn phí</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-300">Đơn hàng từ 500.000₫</div>
-                        </div>
+                        
                       </div>
                       <div className="flex items-center gap-3">
                         <Shield className="h-6 w-6 text-blue-600" />
@@ -881,43 +840,51 @@ export default function ProductDetailPage() {
 
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Sản phẩm gợi ý</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {relatedProducts.map((prod) => (
-              <motion.div
-                key={prod.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div
-                  className="h-full group bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-                  onClick={() => navigate(`/products/${prod.id}`)}
+          {isRelatedProductsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : relatedProducts.length === 0 ? (
+            <p className="text-gray-600 dark:text-gray-300 text-center">Không có sản phẩm gợi ý nào.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedProducts.map((prod) => (
+                <motion.div
+                  key={prod.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <div className="relative aspect-square overflow-hidden">
-                    <img
-                      src={prod.productImages[0]?.imageUrl}
-                      alt={prod.name}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">{formatPrice(prod.minPrice)}</span>
-                      {prod.minPrice < prod.maxPrice && (
-                        <span className="text-sm text-gray-500 dark:text-gray-400 line-through">{formatPrice(prod.maxPrice)}</span>
-                      )}
+                  <div
+                    className="h-full group bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+                    onClick={() => navigate(`/products/${prod.id}`)}
+                  >
+                    <div className="relative aspect-square overflow-hidden">
+                      <img
+                        src={prod.productImages[0]?.imageUrl || "/placeholder.svg?height=200&width=200"}
+                        alt={prod.name}
+                        className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     </div>
-                    <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2 h-12 text-sm">{prod.name}</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide">{prod.brand.name}</p>
-                    <div className="flex items-center gap-2">
-                      {renderStars(prod.averageRating, "sm")}
-                      <span className="text-xs text-gray-600 dark:text-gray-300">({prod.totalReviews})</span>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-gray-900 dark:text-white">{formatPrice(prod.minPrice)}</span>
+                        {prod.minPrice < prod.maxPrice && (
+                          <span className="text-sm text-gray-500 dark:text-gray-400 line-through">{formatPrice(prod.maxPrice)}</span>
+                        )}
+                      </div>
+                      <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2 h-12 text-sm">{prod.name}</h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 uppercase tracking-wide">{prod.brand.name}</p>
+                      <div className="flex items-center gap-2">
+                        {renderStars(prod.averageRating, "sm")}
+                        <span className="text-xs text-gray-600 dark:text-gray-300">({prod.totalReviews})</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

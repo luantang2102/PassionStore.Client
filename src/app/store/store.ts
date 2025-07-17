@@ -15,6 +15,8 @@ import { productVariantApi } from "../api/productVariantApi";
 import { cartApi } from "../api/cartApi";
 import { orderApi } from "../api/orderApi";
 import { ratingApi } from "../api/ratingApi";
+import { chatApi } from "../api/chatApi";
+import { notificationApi } from "../api/notificationApi";
 
 export const store = configureStore({
   reducer: {
@@ -30,6 +32,8 @@ export const store = configureStore({
     [colorApi.reducerPath]: colorApi.reducer,
     [orderApi.reducerPath]: orderApi.reducer,
     [ratingApi.reducerPath]: ratingApi.reducer,
+    [chatApi.reducerPath]: chatApi.reducer,
+    [notificationApi.reducerPath]: notificationApi.reducer,
     product: productReducer,
     auth: authReducer,
   },
@@ -46,6 +50,8 @@ export const store = configureStore({
       cartApi.middleware,
       orderApi.middleware,
       ratingApi.middleware,
+      chatApi.middleware,
+      notificationApi.middleware,
     ]),
 });
 

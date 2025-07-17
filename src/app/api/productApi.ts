@@ -25,6 +25,22 @@ export const productApi = createApi({
       },
       providesTags: ["Products"],
     }),
+    fetchPopularProducts: builder.query<{ items: Product[]; pagination: PaginationParams | null }, ProductParams>({
+      query: (productParams) => ({
+        url: "products/popular",
+        params: productParams,
+      }),
+      transformResponse: (response: Product[], meta) => {
+        const paginationHeader = meta?.response?.headers.get("Pagination");
+        const pagination = paginationHeader ? JSON.parse(paginationHeader) as PaginationParams : null;
+
+        return {
+          items: response,
+          pagination,
+        };
+      },
+      providesTags: ["Products"],
+    }),
     fetchProductById: builder.query<Product, string>({
       query: (productId) => `products/${productId}`,
       transformResponse: (response: Product) => {
@@ -76,6 +92,7 @@ export const productApi = createApi({
 
 export const {
   useFetchProductsQuery,
+  useFetchPopularProductsQuery,
   useFetchProductByIdQuery,
   useFetchProductsByCategoryQuery,
   useCreateProductMutation,

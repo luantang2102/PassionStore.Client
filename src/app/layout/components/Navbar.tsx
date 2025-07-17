@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ShoppingCart, User, Search, Heart } from "lucide-react";
+import { Menu, X, ShoppingCart, User, Search } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { useLogoutMutation, useCheckAuthQuery } from "../../api/authApi";
 import { useGetCartQuery } from "../../api/cartApi";
 import { clearAuth } from "../../store/authSlice";
+import { setParams } from "../../store/productSlice";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const { isAuthenticated, user, loading } = useAppSelector((state) => state.auth);
   const { darkMode } = useAppSelector((state) => state.ui);
   const dispatch = useAppDispatch();
@@ -54,12 +56,25 @@ const Navbar = () => {
     }
   };
 
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      dispatch(setParams({ searchTerm: searchTerm.trim(), pageNumber: 1, pageSize: 20 }));
+      setSearchTerm(""); // Clear input after search
+      navigate("/products");
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      handleSearch();
+    }
+  };
+
   const navItems = [
     { name: "Trang Chủ", href: "/" },
     { name: "Sản Phẩm", href: "/products" },
     { name: "Giỏ Hàng", href: "/cart" },
-    { name: "Thương Hiệu", href: "/brands" },
-    { name: "Khuyến Mãi", href: "/promotions" },
+    { name: "Bộ Sưu Tập", href: "/categories" },
     { name: "Liên Hệ", href: "/contact" },
   ];
 
@@ -122,35 +137,26 @@ const Navbar = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 placeholder="Tìm kiếm sản phẩm..."
-                className={`w-full pl-10 pr-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className={`w-full pl-10 pr-10 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
                   darkMode
                     ? "border-gray-600 bg-gray-700 text-gray-300 placeholder-gray-400"
                     : "border-gray-200 bg-white text-gray-900 placeholder-gray-500"
                 }`}
               />
+              <button
+                onClick={handleSearch}
+                className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200`}
+              >
+                <Search className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
           {/* Right Side Icons */}
           <div className="flex items-center space-x-4">
-            {/* Wishlist */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className={`p-2 transition-colors duration-200 relative ${
-                darkMode ? "text-gray-300 hover:text-red-400" : "text-gray-700 hover:text-red-500"
-              }`}
-            >
-              <Heart className="h-6 w-6" />
-              <span
-                className={`absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-white text-xs rounded-full ${
-                  darkMode ? "bg-red-600" : "bg-red-500"
-                }`}
-              >
-                {isAuthenticated ? user?.wishListItemsCount || 0 : 0}
-              </span>
-            </motion.button>
-
             {/* Shopping Cart */}
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -186,7 +192,6 @@ const Navbar = () => {
                   ) : (
                     <User className="h-6 w-6" />
                   )}
-
                 </button>
                 <AnimatePresence>
                   {isDropdownOpen && (
@@ -289,12 +294,21 @@ const Navbar = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <input
                       placeholder="Tìm kiếm sản phẩm..."
-                      className={`w-full pl-10 pr-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className={`w-full pl-10 pr-10 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         darkMode
                           ? "border-gray-600 bg-gray-700 text-gray-300 placeholder-gray-400"
                           : "border-gray-200 bg-white text-gray-900 placeholder-gray-500"
                       }`}
                     />
+                    <button
+                      onClick={handleSearch}
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200`}
+                    >
+                      <Search className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
                 <div className="space-y-2">

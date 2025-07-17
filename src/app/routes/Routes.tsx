@@ -11,15 +11,35 @@ import Cart from "../../features/Cart/Cart";
 import Profile from "../../features/Profile/Profile";
 import ProtectedRoute from "./ProtectedRoute";
 import Orders from "../../features/Orders/Order";
+import CategoryPage from "../../features/Categories/Category";
+import Contact from "../../features/Home/Contact";
+import ScrollToTop from "../layout/components/ScrollToTop";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <App />,
+    path: '/',
+    element: (
+      <>
+        <ScrollToTop /> 
+        <App />
+      </>
+    ),
     children: [
       {
         path: "",
         element: <Home />,
+      },
+      {
+        path: "contact",
+        element: <Contact />,
+      },
+      {
+        path: "categories",
+        element: <CategoryPage />,
+      },
+      {
+        path: "categories/:categoryId",
+        element: <CategoryPage />,
       },
       {
         path: "products",

@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -26,7 +27,7 @@ import {
 } from "../../app/api/userApi";
 import { UserProfile } from "../../app/models/responses/userProfile";
 import { UserProfileRequest } from "../../app/models/requests/userProfileRequest";
-import ReactCrop, { type Crop } from "react-image-crop";
+import ReactCrop, { type Crop, PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
 interface AddressForm {
@@ -115,6 +116,7 @@ const Profile = () => {
   const [crop, setCrop] = useState<Crop>({ unit: "%", x: 0, y: 0, width: 50, height: 50 });
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [croppedImage, setCroppedImage] = useState<File | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   // Fetch user data
   const { data: userData, isLoading: isUserLoading, error: userError } = useFetchUserByIdQuery(user?.id || "", {
@@ -457,58 +459,67 @@ const Profile = () => {
     const file = event.target.files?.[0];
     if (file) {
       setUserForm({ ...userForm, image: file });
-      toast.info("Ảnh đã được chọn, nhấn Cập nhật để lưu.");
-    }
-  };
-
-  // Handle image selection in image edit dialog
-  const handleImageEditChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
       const reader = new FileReader();
       reader.onload = () => {
         setImageSrc(reader.result as string);
       };
       reader.readAsDataURL(file);
-      setCroppedImage(null);
+      toast.info("Ảnh đã được chọn, nhấn Cập nhật để lưu.");
     }
   };
 
   // Handle image crop
   const handleCropComplete = useCallback(
-    async (crop: Crop, pixelCrop: { x: number; y: number; width: number; height: number }) => {
-      if (!imageSrc) return;
+    async (pixelCrop: PixelCrop) => {
+      if (!imageSrc || !imgRef.current) return;
 
-      const img = new Image();
-      img.src = imageSrc;
-      await new Promise((resolve) => (img.onload = resolve));
+      try {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d")!;
+        const img = imgRef.current;
 
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d")!;
-      canvas.width = pixelCrop.width;
-      canvas.height = pixelCrop.height;
+        // Calculate the scale factor
+        const scaleX = img.naturalWidth / img.width;
+        const scaleY = img.naturalHeight / img.height;
 
-      ctx.drawImage(
-        img,
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width,
-        pixelCrop.height,
-        0,
-        0,
-        pixelCrop.width,
-        pixelCrop.height
-      );
+        // Set canvas dimensions
+        canvas.width = pixelCrop.width;
+        canvas.height = pixelCrop.height;
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const croppedFile = new File([blob], `avatar-${Date.now()}.jpg`, { type: "image/jpeg" });
-          setCroppedImage(croppedFile);
-          setUserForm({ ...userForm, image: croppedFile });
-        }
-      }, "image/jpeg", 0.8);
+        // Draw the cropped image
+        ctx.drawImage(
+          img,
+          pixelCrop.x * scaleX,
+          pixelCrop.y * scaleY,
+          pixelCrop.width * scaleX,
+          pixelCrop.height * scaleY,
+          0,
+          0,
+          pixelCrop.width,
+          pixelCrop.height
+        );
+
+        // Convert canvas to File
+        const croppedImage = await new Promise<File>((resolve) => {
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const file = new File([blob], `avatar-${Date.now()}.jpg`, { type: "image/jpeg" });
+                resolve(file);
+              }
+            },
+            "image/jpeg",
+            0.8
+          );
+        });
+
+        setCroppedImage(croppedImage);
+        setUserForm((prev) => ({ ...prev, image: croppedImage }));
+      } catch (error) {
+        toast.error("Lỗi khi cắt ảnh. Vui lòng thử lại.");
+      }
     },
-    [imageSrc, userForm]
+    [imageSrc]
   );
 
   // Save cropped image
@@ -518,18 +529,25 @@ const Profile = () => {
       return;
     }
 
+    if (!user?.id) {
+      toast.error("Không tìm thấy thông tin người dùng!");
+      return;
+    }
+
     setIsMutating(true);
     try {
+      const imageToUpload = croppedImage || userForm.image;
       await updateUser({
-        id: user?.id || "",
+        id: user.id,
         user: {
-          image: croppedImage || userForm.image || null,
+          image: imageToUpload,
           gender: userForm.gender || null,
           dateOfBirth: userForm.dateOfBirth || null,
         },
       }).unwrap();
       toast.success("Cập nhật ảnh đại diện thành công!");
       closeImageEditDialog();
+      window.location.reload();
     } catch (error: any) {
       const errorMessage =
         error?.data?.message || "Không thể cập nhật ảnh đại diện. Vui lòng thử lại.";
@@ -588,9 +606,11 @@ const Profile = () => {
                       }
                       alt="Avatar"
                       className="w-full h-full object-cover"
-                 
                     />
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" onClick={openImageEditDialog}>
+                    <div
+                      className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                      onClick={openImageEditDialog}
+                    >
                       <Camera className="h-4 w-4 text-white" />
                     </div>
                   </div>
@@ -739,7 +759,6 @@ const Profile = () => {
                             />
                           </div>
                         </div>
-                        
                       </div>
                     )}
                   </div>
@@ -1008,7 +1027,7 @@ const Profile = () => {
                     id="imageUpload"
                     type="file"
                     accept="image/*"
-                    onChange={handleImageEditChange}
+                    onChange={handleAvatarChange}
                     className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none dark:bg-gray-700 dark:text-white"
                   />
                 </div>
@@ -1024,7 +1043,25 @@ const Profile = () => {
                       circularCrop
                       aspect={1}
                     >
-                      <img src={imageSrc} alt="Crop preview" className="max-w-full" />
+                      <img
+                        ref={imgRef}
+                        src={imageSrc}
+                        alt="Crop preview"
+                        className="max-w-full"
+                        onLoad={() => {
+                            if (imgRef.current) {
+                              handleCropComplete(
+                                {
+                                  x: crop.x,
+                                  y: crop.y,
+                                  width: crop.width,
+                                  height: crop.height,
+                                  unit: "px"
+                                }
+                              );
+                            }
+                          }}
+                      />
                     </ReactCrop>
                   </div>
                 )}
