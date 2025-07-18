@@ -8,8 +8,7 @@ import { Mutex } from "async-mutex";
 const mutex = new Mutex();
 
 export const customBaseQuery = fetchBaseQuery({
-  // baseUrl: "passionstore-hwajfcfqb8gbbng8.southeastasia-01.azurewebsites.net/api",
-  baseUrl: "https://localhost:5001/api",
+  baseUrl: process.env.API_PATH + "/api",
   credentials: "include",
 });
 

@@ -62,7 +62,7 @@ const Chat = () => {
     if (!isAuthenticated) return;
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl("https://localhost:5001/chatHub", { withCredentials: true })
+      .withUrl(process.env.API_PATH + "/chatHub", { withCredentials: true })
       .withAutomaticReconnect()
       .build();
 
