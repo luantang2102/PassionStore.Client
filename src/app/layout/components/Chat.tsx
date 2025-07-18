@@ -3,8 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, MessageSquare, Search } from "lucide-react";
 import * as signalR from "@microsoft/signalr";
 import { useAppSelector } from "../../store/store";
-import { useFetchChatsQuery, useCreateChatMutation, useFetchMessagesQuery, useSendMessageMutation } from "../../api/chatApi";
-import { useFetchNotificationsQuery, useMarkNotificationAsReadMutation } from "../../api/notificationApi";
+import {
+  useFetchChatsQuery,
+  useCreateChatMutation,
+  useFetchMessagesQuery,
+  useSendMessageMutation,
+} from "../../api/chatApi";
+import {
+  useFetchNotificationsQuery,
+  useMarkNotificationAsReadMutation,
+} from "../../api/notificationApi";
 import { ChatResponse, MessageParams, MessageResponse } from "../../models/responses/chat";
 import { NotificationResponse } from "../../models/responses/notification";
 
@@ -17,10 +25,16 @@ const Chat = () => {
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "info" | "warning",
+  });
   const [createChat] = useCreateChatMutation();
   const [sendMessage] = useSendMessageMutation();
   const [markNotificationAsRead] = useMarkNotificationAsReadMutation();
-  const { data: chatsData } = useFetchChatsQuery(
+  
+  const { data: chatsData, refetch } = useFetchChatsQuery(
     { currentPage: 1, pageSize: 10, totalPages: 0, totalCount: 0 },
     { skip: !isAuthenticated }
   );
@@ -38,6 +52,11 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
+  // Handle notification close
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
   // Initialize SignalR connection
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -53,7 +72,13 @@ const Chat = () => {
       if (chatId === selectedChat?.id) {
         setMessages((prev) => [
           ...prev,
-          { id: crypto.randomUUID(), chatId, content, isUserMessage: userId === user?.id, createdDate: new Date().toISOString() },
+          {
+            id: crypto.randomUUID(),
+            chatId,
+            content,
+            isUserMessage: userId === user?.id,
+            createdDate: new Date().toISOString(),
+          },
         ]);
       }
     });
@@ -61,16 +86,32 @@ const Chat = () => {
     connection.on("ReceiveNotification", (objectId: string, content: string) => {
       setNotifications((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), userId: user?.id || "", objectId, objectType: "ChatMessage", content, isRead: false, createdDate: new Date().toISOString() },
+        {
+          id: crypto.randomUUID(),
+          userId: user?.id || "",
+          objectId,
+          objectType: "ChatMessage",
+          content,
+          isRead: false,
+          createdDate: new Date().toISOString(),
+        },
       ]);
+      refetch();
     });
 
-    connection.start().catch((err) => console.error("SignalR Connection Error:", err));
+    connection.start().catch(() => {
+      // console.error("SignalR Connection Error:", err);
+      // setNotification({
+      //   open: true,
+      //   message: "Failed to connect to chat server",
+      //   severity: "error",
+      // });
+    });
 
     return () => {
       connection.stop();
     };
-  }, [isAuthenticated, user?.id, selectedChat?.id]);
+  }, [isAuthenticated, user?.id, selectedChat?.id, refetch]);
 
   // Update messages when API data changes
   useEffect(() => {
@@ -78,13 +119,6 @@ const Chat = () => {
       setMessages(messagesData.items);
     }
   }, [messagesData]);
-
-  // Update chats when API data changes
-  useEffect(() => {
-    if (chatsData?.items) {
-      setChats(chatsData.items);
-    }
-  }, [chatsData]);
 
   // Update notifications when API data changes
   useEffect(() => {
@@ -101,12 +135,19 @@ const Chat = () => {
   // Handle creating a new chat
   const handleCreateChat = async () => {
     try {
-      const result = await createChat({ topic: `Support Chat ${new Date().toLocaleDateString()}` }).unwrap();
-      setChats((prev) => [...prev, result]);
+      const result = await createChat({
+        topic: `Chat hỗ trợ ${new Date().toLocaleDateString()}`,
+      }).unwrap();
       setSelectedChat(result);
       setIsOpen(true);
+      refetch();
     } catch (err) {
       console.error("Failed to create chat:", err);
+      setNotification({
+        open: true,
+        message: "Failed to create chat",
+        severity: "error",
+      });
     }
   };
 
@@ -114,10 +155,18 @@ const Chat = () => {
   const handleSendMessage = async () => {
     if (!message.trim() || !selectedChat) return;
     try {
-      await sendMessage({ chatId: selectedChat.id, messageRequest: { content: message } }).unwrap();
+      await sendMessage({
+        chatId: selectedChat.id,
+        messageRequest: { content: message },
+      }).unwrap();
       setMessage("");
     } catch (err) {
       console.error("Failed to send message:", err);
+      setNotification({
+        open: true,
+        message: "Failed to send message",
+        severity: "error",
+      });
     }
   };
 
@@ -125,14 +174,40 @@ const Chat = () => {
   const handleMarkNotificationAsRead = async (notificationId: string) => {
     try {
       await markNotificationAsRead(notificationId).unwrap();
-      setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n)));
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
+      );
+      const notification = notifications.find((n) => n.id === notificationId);
+      if (notification?.objectId) {
+        const chat = chatsData?.items?.find((c) => c.id === notification.objectId);
+        if (chat) {
+          setSelectedChat(chat);
+          connectionRef.current?.invoke("AddToGroup", chat.id).catch(() => {
+            // console.error("Failed to join chat group:", err);
+            // setNotification({
+            //   open: true,
+            //   message: "Failed to join chat group",
+            //   severity: "error",
+            // });
+          });
+        } else {
+          refetch();
+          setNotification({
+            open: true,
+            message: "Chat not found, refreshing chat list...",
+            severity: "info",
+          });
+        }
+      }
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
+      setNotification({
+        open: true,
+        message: "Failed to mark notification as read",
+        severity: "error",
+      });
     }
   };
-
-  // Local state for chats
-  const [chats, setChats] = useState<ChatResponse[]>([]);
 
   if (!isAuthenticated) {
     return (
@@ -149,6 +224,29 @@ const Chat = () => {
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
+      {/* Notification */}
+      <AnimatePresence>
+        {notification.open && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className={`fixed top-4 right-4 p-4 rounded-md shadow-lg ${
+              notification.severity === "error"
+                ? "bg-red-500 text-white"
+                : notification.severity === "info"
+                ? "bg-blue-500 text-white"
+                : "bg-green-500 text-white"
+            }`}
+          >
+            {notification.message}
+            <button onClick={handleCloseNotification} className="ml-2">
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Chat Toggle Button */}
       <motion.button
         whileHover={{ scale: 1.1 }}
@@ -195,10 +293,20 @@ const Chat = () => {
                 Tạo Cuộc Trò Chuyện Mới
               </button>
               <div className="mt-4 space-y-2 max-h-40 overflow-y-auto scrollbar-hide">
-                {chats.map((chat) => (
+                {chatsData?.items?.map((chat) => (
                   <div
                     key={chat.id}
-                    onClick={() => setSelectedChat(chat)}
+                    onClick={() => {
+                      setSelectedChat(chat);
+                      connectionRef.current?.invoke("AddToGroup", chat.id).catch(() => {
+                        // console.error("Failed to join chat group:", err);
+                        // setNotification({
+                        //   open: true,
+                        //   message: "Failed to join chat group",
+                        //   severity: "error",
+                        // });
+                      });
+                    }}
                     className={`p-2 rounded-md cursor-pointer ${
                       selectedChat?.id === chat.id
                         ? darkMode
@@ -215,6 +323,11 @@ const Chat = () => {
                     </p>
                   </div>
                 ))}
+                {(!chatsData?.items || chatsData.items.length === 0) && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No chats available
+                  </p>
+                )}
               </div>
             </div>
 
