@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -142,7 +142,6 @@ interface OrderItemProps {
 
 const OrderItem = ({ product, order, setRatingOrder }: OrderItemProps) => {
   const navigate = useNavigate();
-  const { darkMode } = useAppSelector((state) => state.ui);
   const { data: userRating, isLoading: isRatingLoading, error } = useGetUserRatingForProductQuery(product.productId);
 
   return (

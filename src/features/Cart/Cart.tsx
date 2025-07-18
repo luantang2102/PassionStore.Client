@@ -116,7 +116,7 @@ export default function Cart() {
   const { data: userData, isLoading: isUserLoading } = useFetchUserByIdQuery(user?.id || "", {
     skip: !isAuthenticated || !user?.id,
   });
-  const [addCartItem, { isLoading: isAdding }] = useAddCartItemMutation();
+  const [, { isLoading: isAdding }] = useAddCartItemMutation();
   const [updateCartItem, { isLoading: isUpdating }] = useUpdateCartItemMutation();
   const [deleteCartItem, { isLoading: isDeleting }] = useDeleteCartItemMutation();
   const [createUserProfile, { isLoading: isCreatingProfile }] = useCreateUserProfileMutation();

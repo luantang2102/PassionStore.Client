@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Plus,
   Minus,
-  Truck,
   Shield,
   RotateCcw,
   Check,
