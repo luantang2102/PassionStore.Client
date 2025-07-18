@@ -62,7 +62,7 @@ const Chat = () => {
     if (!isAuthenticated) return;
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(process.env.API_PATH + "/chatHub", { withCredentials: true })
+      .withUrl("https://passionstore-hwajfcfqb8gbbng8.southeastasia-01.azurewebsites.net/chatHub", { withCredentials: true })
       .withAutomaticReconnect()
       .build();
 
