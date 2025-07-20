@@ -1,0 +1,56 @@
+{
+    "routes": [
+        {
+            "src": "/",
+            "dest": "/"
+        },
+        {
+            "src": "/contact",
+            "dest": "/"
+        },
+        {
+            "src": "/categories",
+            "dest": "/"
+        },
+        {
+            "src": "/categories/:categoryId",
+            "dest": "/"
+        },
+        {
+            "src": "/products",
+            "dest": "/"
+        },
+        {
+            "src": "/products/:id",
+            "dest": "/"
+        },
+        {
+            "src": "/cart",
+            "dest": "/"
+        },
+        {
+            "src": "/profile",
+            "dest": "/"
+        },
+        {
+            "src": "/orders",
+            "dest": "/"
+        },
+        {
+            "src": "/signin",
+            "dest": "/"
+        },
+        {
+            "src": "/server-error",
+            "dest": "/"
+        },
+        {
+            "src": "/not-found",
+            "dest": "/"
+        },
+        {
+            "src": "/.*",
+            "dest": "/"
+        }
+    ]
+}
