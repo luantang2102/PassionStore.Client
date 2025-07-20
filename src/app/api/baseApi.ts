@@ -9,6 +9,7 @@ const mutex = new Mutex();
 
 export const customBaseQuery = fetchBaseQuery({
   baseUrl: "https://passionstore-hwajfcfqb8gbbng8.southeastasia-01.azurewebsites.net/api",
+  // baseUrl: "https://localhost:5001/api",
   credentials: "include",
 });
 
