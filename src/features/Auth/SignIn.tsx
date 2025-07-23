@@ -402,7 +402,7 @@ const SignIn = () => {
                       <>
                         <div className="space-y-2">
                           <label htmlFor="userName" className="text-sm font-medium text-gray-700">
-                            Tên tài khoản (Không chứa dấu cách)
+                            Họ và Tên
                           </label>
                           <div className="relative">
                             <User

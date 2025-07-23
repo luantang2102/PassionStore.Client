@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { XCircle, Star } from "lucide-react";
 import { toast } from "react-toastify";
 import { useCreateRatingMutation, useUpdateRatingMutation } from "../../app/api/ratingApi";
-import { useAppSelector } from "../../app/store/store";
 import type { Rating } from "../../app/models/responses/rating";
 
 interface RatingModalProps {
@@ -21,7 +20,6 @@ const RatingModal = ({ productId, productName, isEdit = false, existingRating, o
   const [comment, setComment] = useState<string>(existingRating?.comment || "");
   const [createRating, { isLoading: isCreating }] = useCreateRatingMutation();
   const [updateRating, { isLoading: isUpdating }] = useUpdateRatingMutation();
-  const { darkMode } = useAppSelector((state) => state.ui);
 
   useEffect(() => {
     if (isEdit && existingRating) {
@@ -69,7 +67,7 @@ const RatingModal = ({ productId, productName, isEdit = false, existingRating, o
         exit={{ scale: 0.8, opacity: 0 }}
         transition={{ duration: 0.2 }}
         className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4 p-6 ${
-          darkMode ? "border-gray-600" : "border-gray-200"
+          "border-gray-200"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -120,9 +118,7 @@ const RatingModal = ({ productId, productName, isEdit = false, existingRating, o
               onChange={(e) => setComment(e.target.value)}
               rows={4}
               className={`w-full mt-1 p-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                darkMode
-                  ? "border-gray-600 bg-gray-700 text-gray-300"
-                  : "border-gray-200 bg-white text-gray-900"
+                "border-gray-200 bg-white text-gray-900"
               }`}
               placeholder="Viết nhận xét của bạn..."
             />
@@ -132,9 +128,7 @@ const RatingModal = ({ productId, productName, isEdit = false, existingRating, o
               type="button"
               onClick={onClose}
               className={`px-4 py-2 rounded-lg ${
-                darkMode
-                  ? "text-gray-300 hover:bg-gray-700"
-                  : "text-gray-600 hover:bg-gray-100"
+                 "text-gray-600 hover:bg-gray-100"
               }`}
             >
               Hủy

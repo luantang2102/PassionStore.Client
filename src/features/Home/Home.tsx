@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Star, Truck, Shield, Headphones, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../../app/store/store";
+import { useAppDispatch } from "../../app/store/store";
 import { useFetchProductsQuery, useFetchPopularProductsQuery } from "../../app/api/productApi";
 import { useFetchCategoriesTreeQuery } from "../../app/api/categoryApi";
 import { setParams } from "../../app/store/productSlice";
@@ -40,7 +40,6 @@ interface Category {
 const Home = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { darkMode } = useAppSelector((state) => state.ui);
 
   const featuredParams = {
     pageNumber: 1,
@@ -166,7 +165,7 @@ const Home = () => {
   };
 
   return (
-    <div className={`${darkMode ? "bg-gradient-to-br from-gray-800 to-gray-900" : "bg-gradient-to-br from-slate-50 to-blue-50"}`}>
+    <div className="bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Hero Section */}
       <section
         className="relative overflow-hidden pt-20 pb-16 lg:pt-32 lg:pb-24 bg-cover bg-center"
@@ -221,7 +220,7 @@ const Home = () => {
                 </button>
                 <motion.select
                   onChange={(e) => handleCategoryClick(e.target.value)}
-                  className="px-8 py-3 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwb2x5bGluZSBwb2ludHM9IjYgOSAxMiAxNSAxOCA5Ij48L3BvbHlsaW5lPjwvc3ZnPg==')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:16px_16px] shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="px-8 py-3 rounded-full border-2 border-gray-300 bg-white text-gray-900 hover:bg-gray-100 transition-all duration-300 appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwb2x5bGluZSBwb2ludHM9IjYgOSAxMiAxNSAxOCA5Ij48L3BvbHlsaW5lPjwvc3ZnPg==')] bg-no-repeat bg-[right_0.75rem_center] bg-[length:16px_16px] shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3 }}
@@ -260,7 +259,7 @@ const Home = () => {
 
       {/* Features Section */}
       <section
-        className="py-16 lg:py-24 bg-white dark:bg-gray-800 relative"
+        className="py-16 lg:py-24 bg-white relative"
         style={{
           backgroundImage:`linear-gradient(rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.91)), url('https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`,
           backgroundAttachment: "fixed",
@@ -276,10 +275,10 @@ const Home = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <motion.h2 variants={fadeInUp} className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            <motion.h2 variants={fadeInUp} className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
               Tại Sao Chọn Chúng Tôi?
             </motion.h2>
-            <motion.p variants={fadeInUp} className="text-xl text-gray-600 dark:text-gray-100 max-w-2xl mx-auto">
+            <motion.p variants={fadeInUp} className="text-xl text-gray-600 max-w-2xl mx-auto">
               Cam kết mang đến trải nghiệm mua sắm tuyệt vời nhất cho khách hàng
             </motion.p>
           </motion.div>
@@ -297,12 +296,12 @@ const Home = () => {
               { icon: ArrowRight, title: "Đổi Trả Dễ Dàng", description: "30 ngày đổi trả miễn phí" },
             ].map((feature, index) => (
               <motion.div key={index} variants={fadeInUp}>
-                <div className="h-full bg-white/90 dark:bg-gray-700/90 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 p-8 text-center backdrop-blur-sm">
+                <div className="h-full bg-white/90 border border-gray-200 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 p-8 text-center backdrop-blur-sm">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
                     <feature.icon className="h-8 w-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">{feature.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-100">{feature.description}</p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
+                  <p className="text-gray-600">{feature.description}</p>
                 </div>
               </motion.div>
             ))}
@@ -312,7 +311,7 @@ const Home = () => {
 
       {/* Product Categories */}
       <section
-        className="py-16 lg:py-24 bg-white dark:bg-gray-800 relative"
+        className="py-16 lg:py-24 bg-white relative"
         style={{
           backgroundImage: `linear-gradient(rgba(208, 204, 204, 0.81), rgba(248, 248, 248, 0.9)), url('https://images.unsplash.com/photo-1556817411-31ae72fa3ea0?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`,
           backgroundSize: "cover",
@@ -329,27 +328,27 @@ const Home = () => {
               transition={{ duration: 0.8 }}
               className="flex items-center justify-between mb-8"
             >
-              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Sản Phẩm Nổi Bật</h2>
+              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">Sản Phẩm Nổi Bật</h2>
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => scrollSlider(featuredSliderRef, "left")}
                   onMouseEnter={() => pauseAutoScroll("featured")}
                   onMouseLeave={() => resumeAutoScroll("featured")}
-                  className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
                 >
-                  <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                  <ChevronLeft className="h-5 w-5 text-gray-600" />
                 </button>
                 <button
                   onClick={() => scrollSlider(featuredSliderRef, "right")}
                   onMouseEnter={() => pauseAutoScroll("featured")}
                   onMouseLeave={() => resumeAutoScroll("featured")}
-                  className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
                 >
-                  <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                  <ChevronRight className="h-5 w-5 text-gray-600" />
                 </button>
                 <button
                   onClick={() => navigate("/products")}
-                  className="px-4 py-2 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+                  className="px-4 py-2 rounded-full border-2 border-gray-300 hover:bg-gray-50 transition-all duration-300"
                 >
                   Xem tất cả
                   <ArrowRight className="ml-2 h-4 w-4 inline" />
@@ -363,7 +362,7 @@ const Home = () => {
                 style={{ scrollBehavior: "smooth" }}
               >
                 {isFeaturedProductsLoading ? (
-                  <p className="text-gray-600 dark:text-gray-100">Loading...</p>
+                  <p className="text-gray-600">Loading...</p>
                 ) : (
                   featuredProducts.map((product) => (
                     <motion.div
@@ -375,7 +374,7 @@ const Home = () => {
                       className="flex-shrink-0 w-64 snap-start"
                       onClick={() => navigate(`/products/${product.id}`)}
                     >
-                      <div className="h-full bg-white/90 dark:bg-gray-700/90 border border-gray-200 dark:border-gray-600 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 backdrop-blur-sm">
+                      <div className="h-full bg-white/90 border border-gray-200 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 backdrop-blur-sm">
                         <div className="relative">
                           <img
                             src={product.productImages[0]?.imageUrl || "/placeholder.svg"}
@@ -396,23 +395,23 @@ const Home = () => {
                         <div className="p-4">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-lg font-bold text-gray-900 dark:text-white">
+                              <span className="text-lg font-bold text-gray-900">
                                 {formatPrice(product.minPrice)}
                               </span>
                               {product.minPrice < product.maxPrice && (
-                                <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                                <span className="text-sm text-gray-500 line-through">
                                   {formatPrice(product.maxPrice)}
                                 </span>
                               )}
                             </div>
-                            <h3 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 h-10">{product.name}</h3>
-                            <p className="text-xs text-gray-600 dark:text-gray-100 uppercase tracking-wide">{product.brand.name}</p>
+                            <h3 className="text-sm font-medium text-gray-900 line-clamp-2 h-10">{product.name}</h3>
+                            <p className="text-xs text-gray-600 uppercase tracking-wide">{product.brand.name}</p>
                             <div className="flex items-center gap-2">
                               <div className="flex items-center gap-1">
                                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                <span className="text-xs text-gray-600 dark:text-gray-100">{product.averageRating}</span>
+                                <span className="text-xs text-gray-600">{product.averageRating}</span>
                               </div>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{product.totalReviews} Đánh Giá</span>
+                              <span className="text-xs text-gray-500">{product.totalReviews} Đánh Giá</span>
                             </div>
                           </div>
                         </div>
@@ -433,27 +432,27 @@ const Home = () => {
               transition={{ duration: 0.8 }}
               className="flex items-center justify-between mb-8"
             >
-              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Sản Phẩm Phổ Biến</h2>
+              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">Sản Phẩm Phổ Biến</h2>
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => scrollSlider(popularSliderRef, "left")}
                   onMouseEnter={() => pauseAutoScroll("popular")}
                   onMouseLeave={() => resumeAutoScroll("popular")}
-                  className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
                 >
-                  <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                  <ChevronLeft className="h-5 w-5 text-gray-600" />
                 </button>
                 <button
                   onClick={() => scrollSlider(popularSliderRef, "right")}
                   onMouseEnter={() => pauseAutoScroll("popular")}
                   onMouseLeave={() => resumeAutoScroll("popular")}
-                  className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
                 >
-                  <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                  <ChevronRight className="h-5 w-5 text-gray-600" />
                 </button>
                 <button
                   onClick={() => navigate("/products")}
-                  className="px-4 py-2 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+                  className="px-4 py-2 rounded-full border-2 border-gray-300 hover:bg-gray-50 transition-all duration-300"
                 >
                   Xem tất cả
                   <ArrowRight className="ml-2 h-4 w-4 inline" />
@@ -467,7 +466,7 @@ const Home = () => {
                 style={{ scrollBehavior: "smooth" }}
               >
                 {isPopularProductsLoading ? (
-                  <p className="text-gray-600 dark:text-gray-100">Loading...</p>
+                  <p className="text-gray-600">Loading...</p>
                 ) : (
                   popularProducts.map((product) => (
                     <motion.div
@@ -479,7 +478,7 @@ const Home = () => {
                       className="flex-shrink-0 w-64 snap-start"
                       onClick={() => navigate(`/products/${product.id}`)}
                     >
-                      <div className="h-full bg-white/90 dark:bg-gray-700/90 border border-gray-200 dark:border-gray-600 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 backdrop-blur-sm">
+                      <div className="h-full bg-white/90 border border-gray-200 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 backdrop-blur-sm">
                         <div className="relative">
                           <img
                             src={product.productImages[0]?.imageUrl || "/placeholder.svg"}
@@ -500,23 +499,23 @@ const Home = () => {
                         <div className="p-4">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-lg font-bold text-gray-900 dark:text-white">
+                              <span className="text-lg font-bold text-gray-900">
                                 {formatPrice(product.minPrice)}
                               </span>
                               {product.minPrice < product.maxPrice && (
-                                <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                                <span className="text-sm text-gray-500 line-through">
                                   {formatPrice(product.maxPrice)}
                                 </span>
                               )}
                             </div>
-                            <h3 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 h-10">{product.name}</h3>
-                            <p className="text-xs text-gray-600 dark:text-gray-100 uppercase tracking-wide">{product.brand.name}</p>
+                            <h3 className="text-sm font-medium text-gray-900 line-clamp-2 h-10">{product.name}</h3>
+                            <p className="text-xs text-gray-600 uppercase tracking-wide">{product.brand.name}</p>
                             <div className="flex items-center gap-2">
                               <div className="flex items-center gap-1">
                                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                <span className="text-xs text-gray-600 dark:text-gray-100">{product.averageRating}</span>
+                                <span className="text-xs text-gray-600">{product.averageRating}</span>
                               </div>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{product.totalReviews} Đánh Giá</span>
+                              <span className="text-xs text-gray-500">{product.totalReviews} Đánh Giá</span>
                             </div>
                           </div>
                         </div>
@@ -537,10 +536,10 @@ const Home = () => {
               transition={{ duration: 0.8 }}
               className="flex items-center justify-between mb-8"
             >
-              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Bộ Sưu Tập Sản Phẩm</h2>
+              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">Bộ Sưu Tập Sản Phẩm</h2>
               <button
                 onClick={() => navigate("/categories")}
-                className="px-4 py-2 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+                className="px-4 py-2 rounded-full border-2 border-gray-300 hover:bg-gray-50 transition-all duration-300"
               >
                 Xem tất cả
                 <ArrowRight className="ml-2 h-4 w-4 inline" />
@@ -549,7 +548,7 @@ const Home = () => {
             <div className="relative">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {isCategoriesLoading ? (
-                  <p className="text-gray-600 dark:text-gray-100">Loading...</p>
+                  <p className="text-gray-600">Loading...</p>
                 ) : (
                   categories.map((category: Category) => (
                     <motion.div
@@ -561,7 +560,7 @@ const Home = () => {
                       className="cursor-pointer"
                       onClick={() => handleCategoryClick(category.id)}
                     >
-                      <div className="relative bg-white/90 dark:bg-gray-700/90 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden backdrop-blur-sm">
+                      <div className="relative bg-white/90 border border-gray-200 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden backdrop-blur-sm">
                         <div className="relative group">
                           <img
                             src={category.imageUrl || `https://via.placeholder.com/300x200?text=${encodeURIComponent(category.name)}`}
@@ -574,9 +573,9 @@ const Home = () => {
                             <p className="text-sm">{category.totalProducts} sản phẩm</p>
                           </div>
                         </div>
-                        <div className="p-4 text-center bg-gradient-to-b from-white to-gray-50 dark:from-gray-700 dark:to-gray-800">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{category.name}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-100">{category.totalProducts} sản phẩm</p>
+                        <div className="p-4 text-center bg-gradient-to-b from-white to-gray-50">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1">{category.name}</h3>
+                          <p className="text-sm text-gray-600">{category.totalProducts} sản phẩm</p>
                         </div>
                       </div>
                     </motion.div>

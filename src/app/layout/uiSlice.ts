@@ -1,10 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 // const getInitDarkMode = () => {
-//   if (typeof window !== 'undefined') {
-//     const storedDarkMode = localStorage.getItem('darkMode');
-//     return storedDarkMode ? JSON.parse(storedDarkMode) : true;
-//   }
+  // if (typeof window !== 'undefined') {
+  //   const storedDarkMode = localStorage.getItem('darkMode');
+  //   return storedDarkMode ? JSON.parse(storedDarkMode) : true;
+  // }
 //   return true;
 // };
 

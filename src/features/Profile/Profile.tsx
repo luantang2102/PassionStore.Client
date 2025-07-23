@@ -47,6 +47,7 @@ interface AddressForm {
 interface UserForm {
   gender: string | null;
   dateOfBirth: string | null;
+  fullName: string;
   image: File | null;
 }
 
@@ -78,7 +79,6 @@ interface Ward {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { darkMode } = useAppSelector((state) => state.ui);
   const { isAuthenticated, user, loading: authLoading } = useAppSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState<"personal" | "addresses">("personal");
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
@@ -105,6 +105,7 @@ const Profile = () => {
   const [userForm, setUserForm] = useState<UserForm>({
     gender: null,
     dateOfBirth: null,
+    fullName: "",
     image: null,
   });
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -207,6 +208,7 @@ const Profile = () => {
       setUserForm({
         gender: userData.gender || null,
         dateOfBirth: userData.dateOfBirth || null,
+        fullName: userData.fullName || "",
         image: null,
       });
     }
@@ -238,7 +240,7 @@ const Profile = () => {
     } else {
       setEditingAddress(null);
       setAddressForm({
-        fullName: user?.userName || "",
+        fullName: user?.fullName || "",
         phoneNumber: "",
         province: "",
         provinceCode: "",
@@ -260,7 +262,7 @@ const Profile = () => {
     setEditingAddress(null);
     setShowAddressDropdowns(false);
     setAddressForm({
-      fullName: user?.userName || "",
+      fullName: user?.fullName || "",
       phoneNumber: "",
       province: "",
       provinceCode: "",
@@ -284,6 +286,7 @@ const Profile = () => {
     setUserForm({
       gender: userData?.gender || null,
       dateOfBirth: userData?.dateOfBirth || null,
+      fullName: userData?.fullName || "",
       image: null,
     });
   };
@@ -364,6 +367,11 @@ const Profile = () => {
       return;
     }
 
+    if (!userForm.fullName.trim()) {
+      toast.error("Vui lòng nhập họ và tên!");
+      return;
+    }
+
     setIsMutating(true);
     try {
       await updateUser({
@@ -371,6 +379,7 @@ const Profile = () => {
         user: {
           image: userForm.image || null,
           gender: userForm.gender || null,
+          fullName: userForm.fullName.trim(), // Send trimmed fullName directly
           dateOfBirth: userForm.dateOfBirth || null,
         },
       }).unwrap();
@@ -378,6 +387,7 @@ const Profile = () => {
       closeUserEditDialog();
       window.location.reload();
     } catch (error: any) {
+      console.error("API error:", error); // Log error for debugging
       const errorMessage =
         error?.data?.message || "Không thể cập nhật thông tin. Vui lòng thử lại.";
       toast.error(errorMessage);
@@ -542,6 +552,7 @@ const Profile = () => {
         user: {
           image: imageToUpload,
           gender: userForm.gender || null,
+          fullName: userForm.fullName.trim(), // Send trimmed fullName
           dateOfBirth: userForm.dateOfBirth || null,
         },
       }).unwrap();
@@ -568,9 +579,7 @@ const Profile = () => {
   return (
     <div
       className={`min-h-screen ${
-        darkMode
-          ? "bg-gradient-to-br from-gray-800 to-gray-900"
-          : "bg-gradient-to-br from-slate-50 to-blue-50"
+        "bg-gradient-to-br from-slate-50 to-blue-50"
       }`}
     >
       <div className="container mx-auto px-4 pt-24 pb-8">
@@ -690,13 +699,13 @@ const Profile = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label htmlFor="userName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Tên người dùng
+                            Họ và tên
                           </label>
                           <div className="relative">
                             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                             <input
-                              id="userName"
-                              value={user.userName || ""}
+                              id="fullName"
+                              value={user.fullName || ""}
                               disabled
                               className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-300"
                             />
@@ -746,14 +755,14 @@ const Profile = () => {
                           </div>
                         </div>
                         <div>
-                          <label htmlFor="roles" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Vai trò
+                          <label htmlFor="userName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Username
                           </label>
                           <div className="relative">
                             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                             <input
-                              id="roles"
-                              value={user.roles.join(", ") || "Không có vai trò"}
+                              id="userName"
+                              value={user.userName || ""}
                               disabled
                               className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-300"
                             />
@@ -912,6 +921,18 @@ const Profile = () => {
                 </button>
               </div>
               <div className="space-y-4">
+                <div>
+                  <label htmlFor="fullName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Họ và tên
+                  </label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    value={userForm.fullName || ""}
+                    onChange={(e) => setUserForm({ ...userForm, fullName: e.target.value })}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600  dark:bg-gray-700 dark:text-gray-300"
+                  />
+                </div>
                 <div>
                   <label htmlFor="userAvatar" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Ảnh đại diện

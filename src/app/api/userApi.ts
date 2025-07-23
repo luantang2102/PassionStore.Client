@@ -43,6 +43,7 @@ export const userApi = createApi({
         const formData = new FormData();
         if (user.image) formData.append("Image", user.image);
         if (user.gender) formData.append("Gender", user.gender);
+        if (user.fullName) formData.append("FullName", user.fullName);
         if (user.dateOfBirth) formData.append("DateOfBirth", user.dateOfBirth);
         return {
           url: `/users/${id}`,

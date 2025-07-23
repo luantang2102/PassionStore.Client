@@ -19,7 +19,6 @@ import {
   Edit,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { useAppSelector } from "../../app/store/store";
 import { useFetchSelfOrdersQuery, useGetOrderByIdQuery, useCancelOrderMutation } from "../../app/api/orderApi";
 import { useGetUserRatingForProductQuery } from "../../app/api/ratingApi";
 import { Order, PaymentMethod, ShippingMethod } from "../../app/models/responses/order";
@@ -222,7 +221,6 @@ const OrderItem = ({ product, order, setRatingOrder }: OrderItemProps) => {
 
 const Orders = () => {
   const navigate = useNavigate();
-  const { darkMode } = useAppSelector((state) => state.ui);
   const [pageNumber, setPageNumber] = useState(1);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [ratingOrder, setRatingOrder] = useState<{ orderId: string; productId: string; productName: string; rating?: Rating; isEdit?: boolean } | null>(null);
@@ -277,7 +275,7 @@ const Orders = () => {
 
   if (isLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${darkMode ? "bg-gradient-to-br from-gray-800 to-gray-900" : "bg-gradient-to-br from-slate-50 to-blue-50"}`}>
+      <div className={`min-h-screen flex items-center justify-center ${"bg-gradient-to-br from-slate-50 to-blue-50"}`}>
         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         <p className="text-gray-600 dark:text-gray-300 mt-4">Đang tải đơn hàng...</p>
       </div>
@@ -286,14 +284,14 @@ const Orders = () => {
 
   if (error) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${darkMode ? "bg-gradient-to-br from-gray-800 to-gray-900" : "bg-gradient-to-br from-slate-50 to-blue-50"}`}>
+      <div className={`min-h-screen flex items-center justify-center ${"bg-gradient-to-br from-slate-50 to-blue-50"}`}>
         <p className="text-gray-600 dark:text-gray-300">Không thể tải đơn hàng. Vui lòng thử lại.</p>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-gradient-to-br from-gray-800 to-gray-900" : "bg-gradient-to-br from-slate-50 to-blue-50"}`}>
+    <div className={`min-h-screen ${"bg-gradient-to-br from-slate-50 to-blue-50"}`}>
       <div className="container mx-auto px-4 pt-24 pb-8">
         <div className="mb-8">
           <button
@@ -323,9 +321,7 @@ const Orders = () => {
                 onChange={handleSearchChange}
                 disabled={isLoading}
                 className={`w-full pl-10 pr-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
-                  darkMode
-                    ? "border-gray-600 bg-gray-700 text-gray-300 placeholder-gray-400"
-                    : "border-gray-200 bg-white text-gray-900 placeholder-gray-500"
+                  "border-gray-200 bg-white text-gray-900 placeholder-gray-500"
                 } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
               />
             </div>
@@ -334,9 +330,7 @@ const Orders = () => {
               onChange={handleStatusFilterChange}
               disabled={isLoading}
               className={`w-full sm:w-48 px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
-                darkMode
-                  ? "border-gray-600 bg-gray-700 text-gray-300"
-                  : "border-gray-200 bg-white text-gray-900"
+                 "border-gray-200 bg-white text-gray-900"
               } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <option value="">Tất cả trạng thái</option>

@@ -155,6 +155,7 @@ export default function Cart() {
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [orderId, setOrderId] = useState("");
   const [isMutating, setIsMutating] = useState(false);
+  const [isUsingDefault, setIsUsingDefault] = useState(true);
 
   // Handle payment callback query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -416,6 +417,16 @@ export default function Cart() {
     setCouponCode("");
     toast.info("Đã xóa mã giảm giá.");
   };
+
+  const setUsingDefaultAddress = (useDefault: boolean) => {
+    setIsUsingDefault(useDefault);
+    if (useDefault && profiles.length > 0) {
+      const defaultProfile = profiles.find((profile) => profile.isDefault) || profiles[0];
+      setSelectedProfile(defaultProfile);
+    } else {
+      setSelectedProfile(null);
+    }
+  }
 
   const subtotal = cart?.cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0) || 0;
   const discount = appliedCoupon?.discount ? subtotal * appliedCoupon.discount : 0;
@@ -814,6 +825,32 @@ export default function Cart() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Chọn địa chỉ giao hàng</h3>
+                        <div className="flex items-center gap-4">
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name="addressType"
+                              checked={isUsingDefault}
+                              onChange={() => setUsingDefaultAddress(true)}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-full focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                            />
+                            <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                              Địa chỉ mặc định
+                            </span>
+                          </label>
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name="addressType"
+                              checked={!isUsingDefault}
+                              onChange={() => setUsingDefaultAddress(false)}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-full focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                            />
+                            <span className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                              Chọn địa chỉ khác
+                            </span>
+                          </label>
+                        </div>
                         <button
                           onClick={() => openAddressDialog()}
                           className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center"
@@ -839,7 +876,40 @@ export default function Cart() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          {profiles.map((profile) => (
+                          {isUsingDefault ? 
+                            <div>
+                              <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <h4 className="font-semibold text-gray-900 dark:text-white">{selectedProfile?.fullName}</h4>
+                                      {selectedProfile?.isDefault && (
+                                        <span className="inline-block bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-sm px-2 py-1 rounded">
+                                          <Star className="h-3 w-3 inline mr-1" />
+                                          Mặc định
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-gray-600 dark:text-gray-300 mb-1">{selectedProfile?.phoneNumber}</p>
+                                    <p className="text-gray-700 dark:text-gray-200">
+                                      {selectedProfile?.specificAddress}, {selectedProfile?.ward}, {selectedProfile?.district}, {selectedProfile?.province}
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openAddressDialog(selectedProfile ?? undefined);
+                                    }}
+                                    className="px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
+                                    aria-label={`Chỉnh sửa địa chỉ ${selectedProfile?.fullName}`}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </button> 
+                                </div>
+                              </div> 
+                            </div>
+                            : 
+                            profiles.map((profile) => (
                             <div
                               key={profile.id}
                               className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${

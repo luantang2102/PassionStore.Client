@@ -4,6 +4,7 @@ import { UserProfile } from "./userProfile";
 export interface User {
     id: string;
     userName: string | null;
+    fullName: string | null;
     imageUrl: string | null;
     publicId: string | null;
     email: string | null;
